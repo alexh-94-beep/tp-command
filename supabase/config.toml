@@ -1,0 +1,72 @@
+project_id = "tp-command"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 15
+
+[db.pooler]
+enabled = false
+port = 54329
+pool_mode = "transaction"
+default_pool_size = 20
+max_client_conn = 100
+
+[realtime]
+enabled = true
+
+[studio]
+enabled = true
+port = 54323
+
+[inbucket]
+enabled = true
+port = 54324
+smtp_port = 54325
+pop3_port = 54326
+
+[storage]
+enabled = true
+file_size_limit = "50MiB"
+
+[storage.buckets."cleaning-photos"]
+public = false
+file_size_limit = "20MiB"
+allowed_mime_types = ["image/png", "image/jpeg", "image/webp"]
+
+[storage.buckets."tenant-documents"]
+public = false
+file_size_limit = "20MiB"
+allowed_mime_types = ["application/pdf", "image/png", "image/jpeg", "image/webp"]
+
+[auth]
+enabled = true
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["http://localhost:3000/auth/callback"]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+refresh_token_reuse_interval = 10
+# enable_signup MUSS auf true – sonst sind auch Magic-Links für bestehende User aus.
+# Schutz gegen neue Auto-Signups via Magic-Link erfolgt im Client-Code:
+# `signInWithOtp({ ..., options: { shouldCreateUser: false } })` (siehe login-form.tsx).
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = false
+
+[auth.email.template.magic_link]
+subject = "Dein Login zu TP-Command"
+
+[edge_runtime]
+enabled = true
+policy = "oneshot"
+inspector_port = 8083
