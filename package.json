@@ -17,7 +17,9 @@
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
     "db:types": "supabase gen types typescript --local > src/types/db.ts",
-    "db:diff": "supabase db diff"
+    "db:types:remote": "supabase gen types typescript --linked > src/types/db.ts",
+    "db:diff": "supabase db diff",
+    "import:apartments": "tsx scripts/import-apartments.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",
@@ -52,6 +54,8 @@
     "prettier-plugin-tailwindcss": "^0.6.8",
     "supabase": "^1.207.9",
     "tailwindcss": "^3.4.13",
+    "tsx": "^4.19.2",
+    "dotenv": "^16.4.5",
     "typescript": "^5.6.2",
     "vitest": "^2.1.2"
   }
