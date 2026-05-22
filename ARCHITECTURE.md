@@ -179,12 +179,12 @@ export async function regenerateBookingTasks(bookingId: string) {
 
 ### Joins / PostgREST
 
-- PostgREST liefert Joins als Array (`{ apartment: [{ number: '...' }] }`)
-  obwohl es eine 1:1-Relation ist.
-- Wir typisieren das im Caller manuell:
-  `r.apartment as unknown as { number: string } | null`.
-- Als nächste Verbesserung: `pnpm db:types` ausführen und die generierten
-  Typen in `src/types/db.ts` einlesen, dann brauchen wir die Casts nicht.
+- PostgREST liefert eingebettete 1:1-Relationen je nach Query als Objekt
+  oder als Array.
+- `src/types/db.ts` wird mit `supabase gen types` **generiert** (Scripts
+  `pnpm db:types` / `db:types:remote`) – nicht von Hand pflegen.
+- Mit den generierten Typen werden Joins sauber typisiert, statt mit
+  `as unknown as` zu casten. Casts nur noch als begründete Ausnahme.
 
 ### Storage
 

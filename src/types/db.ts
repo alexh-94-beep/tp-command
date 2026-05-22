@@ -7,11 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
-  __InternalSupabase: {
-    PostgrestVersion: "14.5"
-  }
   graphql_public: {
     Tables: {
       [_ in never]: never
@@ -1443,6 +1438,7 @@ export type Database = {
           address: string | null
           annual_income: number | null
           civil_status: Database["public"]["Enums"]["civil_status"] | null
+          company_name: string | null
           created_at: string
           date_of_birth: string | null
           email: string | null
@@ -1450,7 +1446,7 @@ export type Database = {
           employment_status:
             | Database["public"]["Enums"]["employment_status"]
             | null
-          first_name: string
+          first_name: string | null
           flatfox_raw: Json | null
           gender: Database["public"]["Enums"]["gender"] | null
           has_debt_collection: boolean | null
@@ -1458,7 +1454,7 @@ export type Database = {
           id: string
           id_document_number: string | null
           id_document_type: Database["public"]["Enums"]["id_doc_type"] | null
-          last_name: string
+          last_name: string | null
           nationality: string | null
           notes: string | null
           phone: string | null
@@ -1477,6 +1473,7 @@ export type Database = {
           address?: string | null
           annual_income?: number | null
           civil_status?: Database["public"]["Enums"]["civil_status"] | null
+          company_name?: string | null
           created_at?: string
           date_of_birth?: string | null
           email?: string | null
@@ -1484,7 +1481,7 @@ export type Database = {
           employment_status?:
             | Database["public"]["Enums"]["employment_status"]
             | null
-          first_name: string
+          first_name?: string | null
           flatfox_raw?: Json | null
           gender?: Database["public"]["Enums"]["gender"] | null
           has_debt_collection?: boolean | null
@@ -1492,7 +1489,7 @@ export type Database = {
           id?: string
           id_document_number?: string | null
           id_document_type?: Database["public"]["Enums"]["id_doc_type"] | null
-          last_name: string
+          last_name?: string | null
           nationality?: string | null
           notes?: string | null
           phone?: string | null
@@ -1511,6 +1508,7 @@ export type Database = {
           address?: string | null
           annual_income?: number | null
           civil_status?: Database["public"]["Enums"]["civil_status"] | null
+          company_name?: string | null
           created_at?: string
           date_of_birth?: string | null
           email?: string | null
@@ -1518,7 +1516,7 @@ export type Database = {
           employment_status?:
             | Database["public"]["Enums"]["employment_status"]
             | null
-          first_name?: string
+          first_name?: string | null
           flatfox_raw?: Json | null
           gender?: Database["public"]["Enums"]["gender"] | null
           has_debt_collection?: boolean | null
@@ -1526,7 +1524,7 @@ export type Database = {
           id?: string
           id_document_number?: string | null
           id_document_type?: Database["public"]["Enums"]["id_doc_type"] | null
-          last_name?: string
+          last_name?: string | null
           nationality?: string | null
           notes?: string | null
           phone?: string | null
@@ -1917,7 +1915,7 @@ export type Database = {
         | "flatfox_application"
         | "contract"
         | "other"
-      tenant_kind: "tenant" | "guest"
+      tenant_kind: "tenant" | "guest" | "company"
       tenant_source:
         | "direct"
         | "flatfox"
@@ -2028,6 +2026,101 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      iceberg_namespaces: {
+        Row: {
+          bucket_name: string
+          catalog_id: string
+          created_at: string
+          id: string
+          metadata: Json
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          bucket_name: string
+          catalog_id: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          bucket_name?: string
+          catalog_id?: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "iceberg_namespaces_catalog_id_fkey"
+            columns: ["catalog_id"]
+            isOneToOne: false
+            referencedRelation: "buckets_analytics"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      iceberg_tables: {
+        Row: {
+          bucket_name: string
+          catalog_id: string
+          created_at: string
+          id: string
+          location: string
+          name: string
+          namespace_id: string
+          remote_table_id: string | null
+          shard_id: string | null
+          shard_key: string | null
+          updated_at: string
+        }
+        Insert: {
+          bucket_name: string
+          catalog_id: string
+          created_at?: string
+          id?: string
+          location: string
+          name: string
+          namespace_id: string
+          remote_table_id?: string | null
+          shard_id?: string | null
+          shard_key?: string | null
+          updated_at?: string
+        }
+        Update: {
+          bucket_name?: string
+          catalog_id?: string
+          created_at?: string
+          id?: string
+          location?: string
+          name?: string
+          namespace_id?: string
+          remote_table_id?: string | null
+          shard_id?: string | null
+          shard_key?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "iceberg_tables_catalog_id_fkey"
+            columns: ["catalog_id"]
+            isOneToOne: false
+            referencedRelation: "buckets_analytics"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "iceberg_tables_namespace_id_fkey"
+            columns: ["namespace_id"]
+            isOneToOne: false
+            referencedRelation: "iceberg_namespaces"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       migrations: {
         Row: {
@@ -2643,7 +2736,7 @@ export const Constants = {
         "contract",
         "other",
       ],
-      tenant_kind: ["tenant", "guest"],
+      tenant_kind: ["tenant", "guest", "company"],
       tenant_source: [
         "direct",
         "flatfox",
@@ -2664,3 +2757,4 @@ export const Constants = {
     },
   },
 } as const
+

@@ -1,9 +1,17 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
 
-:root {
-  --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+/* Tailwind 4: Theme-Tokens CSS-first via @theme statt tailwind.config.ts.
+   Erzeugt Utilities wie bg-status-occupied, text-priority-urgent, ... */
+@theme {
+  --color-status-available: #22c55e;
+  --color-status-occupied: #3b82f6;
+  --color-status-blocked: #ef4444;
+  --color-status-maintenance: #f59e0b;
+
+  --color-priority-low: #94a3b8;
+  --color-priority-normal: #3b82f6;
+  --color-priority-high: #f59e0b;
+  --color-priority-urgent: #ef4444;
 }
 
 html,
@@ -12,7 +20,6 @@ body {
 }
 
 body {
-  font-family: var(--font-sans);
-  color: rgb(15 23 42); /* slate-900 */
-  background-color: rgb(248 250 252); /* slate-50 */
+  background-color: #f8fafc; /* slate-50 */
+  color: #0f172a; /* slate-900 */
 }

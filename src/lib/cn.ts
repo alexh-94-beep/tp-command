@@ -1,7 +1,7 @@
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
-/** Tailwind-aware className-Merger für UI-Komponenten. */
+/** Tailwind-Klassen mergen (clsx + tailwind-merge gegen Konflikte). */
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }

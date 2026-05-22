@@ -1,89 +1,102 @@
 # TP-Command
 
-Internes Betriebs­system für unseren Bestand möblierter Apartments.
+Internes Betriebssystem für die Vermietung von 180 möblierten Apartments
+(ThreePoint, Dübendorf). Löst die SharePoint-Belegungsliste ab und bildet alle
+operativen Workflows ab – Einzug, Auszug, Reinigung, Cityus, Booking, Übergaben.
 
-Ablöse der bisherigen SharePoint-Excel: zentrale Sicht auf Belegung, Buchungen,
-Reinigung, Zahlungen – mit automatischer Anbindung an Booking.com und einer
-Architektur, die Airbnb, Expedia und Direkt­buchungen später trägt.
+Dies ist der **v2-Neuaufbau**. Geschäftskontext und Datenmodell stehen in
+`PROJECT-BRIEF.md`, die Neuaufbau-Entscheidungen in `PROJECT-BRIEF-v2.md`,
+die Architektur in `ARCHITECTURE.md`. Der v1-Stand ist als Git-Tag
+`v1-archive` erreichbar.
 
-## Stack (Kurzfassung)
+## Stack
 
-- Next.js 14 (App Router) + TypeScript + Tailwind + shadcn/ui
-- Supabase (Postgres, Auth, Storage, Edge Functions)
-- Resend + react-email für Mails
-- Vercel Hosting + Vercel Cron für Hintergrund-Jobs
-- Vitest + Playwright
+- **Next.js 16** (App Router) + **React 19** + **TypeScript**
+- **Tailwind CSS 4** (CSS-first, Theme via `@theme` in `globals.css`)
+- **Supabase** (PostgreSQL + Auth + Storage + RLS)
+- **pnpm** als Package-Manager, **Vercel** als Hosting
 
-## Module
+## Voraussetzungen
 
-1. **Dashboard** – Live-Übersicht: Belegung, Ein-/Auszüge, offene Reinigungen, offene Zahlungen.
-2. **Wohnungen** – Stammdaten pro Apartment.
-3. **Belegungsplanung** – Kalender mit Verfügbarkeits-Check.
-4. **Buchungen** – Langzeit, Kurzzeit, Booking in einer Tabelle.
-5. **Channels** – Booking.com zuerst, später Airbnb / Expedia / Direkt.
-6. **Reinigung** – automatische Auftrags­erzeugung, mobile Sicht für das Team.
-7. **Zahlungen** – Ampellogik pro Buchung.
-8. **Kommunikation** – Templates für Welcome / Check-in / Erinnerungen.
+- Node.js 20+
+- pnpm 9
+- Supabase-CLI
+- Docker (für das lokale Supabase)
 
-## Dokumentation
-
-| Datei | Inhalt |
-|-------|--------|
-| [docs/01-architektur.md](docs/01-architektur.md) | Tech-Stack, Schichten, Channel-Adapter-Pattern |
-| [docs/02-datenmodell.md](docs/02-datenmodell.md) | Tabellen, Enums, ER-Diagramm |
-| [docs/03-roadmap.md](docs/03-roadmap.md) | Phasen 0–4 für das MVP, Definition of Done |
-| [docs/04-annahmen.md](docs/04-annahmen.md) | Alle MVP-Annahmen, dokumentiert für Review |
-| [docs/05-projektstruktur.md](docs/05-projektstruktur.md) | Verzeichnisbaum + Konventionen |
-
-## Status
-
-**Phase 0 abgeschlossen** (29.04.2026): Skelett, Auth, Datenbank-Schema, App-Shell.
-Nächster Schritt: Phase 1 – CRUD für Wohnungen, Mieter und Buchungen.
-
-## Rollen
-
-`admin`, `office`, `cleaning`, `management` – Definition siehe
-[docs/04-annahmen.md](docs/04-annahmen.md), Punkt 17.
-
-## Lokal entwickeln
-
-Voraussetzungen: Node 20+, pnpm, Docker (für lokales Supabase).
+## Lokales Setup
 
 ```bash
-# 1. Dependencies
+# 1. Abhängigkeiten installieren
 pnpm install
 
-# 2. Env vorbereiten
-cp .env.example .env.local
-# (Werte einsetzen, siehe `pnpm supabase status` nach dem Start)
+# 2. Lokales Supabase starten (Docker)
+supabase start
 
-# 3. Supabase lokal starten – Datenbank, Auth, Storage, Studio
-pnpm supabase start
+# 3. Schema + Demo-Daten einspielen
+supabase db reset
 
-# 4. Migrationen + Seed laufen automatisch beim ersten Start.
-# Bei Schema-Änderungen:
-pnpm db:reset
-
-# 5. Typen für die DB neu generieren (überschreibt src/types/db.ts)
+# 4. DB-Typen generieren
 pnpm db:types
 
-# 6. Dev-Server
-pnpm dev
+# 5. Env-Datei anlegen
+cp .env.example .env.local
+# .env.local mit den Werten aus `supabase status` füllen
+#  (NEXT_PUBLIC_SUPABASE_URL, ANON_KEY, SERVICE_ROLE_KEY)
+
+# 6. Dev-Server starten
+pnpm dev          # http://localhost:3000
 ```
 
-App: <http://localhost:3000>
-Supabase Studio: <http://localhost:54323>
-Magic-Link-Mails landen lokal in Inbucket: <http://localhost:54324>
+### Test-User anlegen
 
-### Ersten Admin anlegen
+`supabase db reset` legt keine Auth-User an. Einen anlegen:
 
-Nach `pnpm supabase start`:
+```bash
+SK=$(supabase status -o env | grep '^SERVICE_ROLE_KEY=' | cut -d'"' -f2)
+curl -s -X POST 'http://127.0.0.1:54321/auth/v1/admin/users' \
+  -H "apikey: $SK" -H "Authorization: Bearer $SK" \
+  -H 'Content-Type: application/json' \
+  -d '{"email":"a.huber@threepoint.ch","password":"<passwort>","email_confirm":true}'
+```
 
-1. Login auf <http://localhost:3000/login> mit deiner Mail starten.
-2. Magic-Link aus Inbucket bestätigen – das legt einen `auth.users`-Eintrag an.
-3. In Supabase Studio (<http://localhost:54323>) → Table Editor → `users`
-   einen Eintrag mit derselben `id` (UUID kopieren aus auth.users) und
-   `role = 'admin'` einfügen.
-4. Reload – du siehst das Dashboard.
+Danach das Profil in `public.users` ergänzen (Rolle setzen) – am einfachsten
+über `supabase/seed-prod.sql` im Studio-SQL-Editor (`http://127.0.0.1:54323`).
 
-(Ab Phase 1 gibt es dafür einen Admin-User-Manager unter `/settings/users`.)
+## Scripts
+
+| Befehl                 | Zweck                                          |
+|------------------------|------------------------------------------------|
+| `pnpm dev`             | Dev-Server                                     |
+| `pnpm build`           | Production-Build                               |
+| `pnpm typecheck`       | `tsc --noEmit`                                 |
+| `pnpm lint`            | ESLint                                         |
+| `pnpm format`          | Prettier                                       |
+| `pnpm db:start/stop`   | Lokales Supabase                               |
+| `pnpm db:reset`        | Schema + Seed neu einspielen                   |
+| `pnpm db:types`        | DB-Typen aus lokalem Supabase generieren       |
+| `pnpm db:types:remote` | DB-Typen aus dem verlinkten Cloud-Projekt      |
+
+## Projektstruktur
+
+```
+src/app/         Pages, Layouts, API-Routes
+src/server/      'use server' Actions (Auth-Check + zod-Validierung)
+src/services/    pure Business-Logik, testbar
+src/lib/         Supabase-Clients, Helpers, Auth
+src/components/  reine React-UI
+src/types/       generierte DB-Typen (db.ts – nicht von Hand pflegen)
+supabase/        Migrationen + Seed
+```
+
+Details und Konventionen: `ARCHITECTURE.md`.
+
+## Deployment
+
+Getrennte dev/prod-Umgebungen auf Supabase + Vercel – siehe `DEPLOYMENT.md`.
+Datenbank-Reset auf der Cloud: `MIGRATION-RESET.md`.
+
+## Build-Gate
+
+`pnpm typecheck && pnpm lint && pnpm build` muss **ohne unterdrückte Fehler**
+grün sein. Kein `ignoreBuildErrors`, kein `ignoreDuringBuilds`. DB-Typen werden
+generiert, nicht von Hand gepflegt.

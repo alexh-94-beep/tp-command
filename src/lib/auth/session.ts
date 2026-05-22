@@ -11,7 +11,7 @@ export interface AppUser {
 
 /** Holt den aktuellen User inkl. Rolle aus public.users. Null wenn nicht eingeloggt. */
 export async function getCurrentUser(): Promise<AppUser | null> {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -30,23 +30,21 @@ export async function getCurrentUser(): Promise<AppUser | null> {
     id: profile.id,
     email: profile.email,
     fullName: profile.full_name,
-    role: profile.role as AppRole,
+    role: profile.role,
   };
 }
 
 /** Wirft den User auf /login, wenn nicht eingeloggt. Liefert sonst den User. */
 export async function requireUser(): Promise<AppUser> {
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
   const {
     data: { user: authUser },
   } = await supabase.auth.getUser();
 
   if (!authUser) {
     redirect('/login');
-    throw new Error('unreachable');
   }
 
-  // Profil aus public.users laden
   const { data: profile } = await supabase
     .from('users')
     .select('id, email, full_name, role')
@@ -54,17 +52,16 @@ export async function requireUser(): Promise<AppUser> {
     .single();
 
   if (!profile) {
-    // Auth-Cookie ist gültig, aber das Profil fehlt (z. B. nach db reset).
+    // Auth-Cookie gültig, aber Profil fehlt (z. B. nach db reset).
     // Sauber ausloggen statt Endlos-Redirect.
     redirect('/auth/no-profile');
-    throw new Error('unreachable');
   }
 
   return {
     id: profile.id,
     email: profile.email,
     fullName: profile.full_name,
-    role: profile.role as AppRole,
+    role: profile.role,
   };
 }
 
@@ -73,7 +70,6 @@ export async function requireRole(roles: AppRole[]): Promise<AppUser> {
   const user = await requireUser();
   if (!roles.includes(user.role)) {
     redirect('/dashboard');
-    throw new Error('unreachable');
   }
   return user;
 }

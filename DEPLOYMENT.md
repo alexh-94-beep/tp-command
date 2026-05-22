@@ -1,204 +1,183 @@
-# TP-Command – Deployment auf Vercel + Hosted Supabase
+# Deployment – TP-Command
 
-Schritt-für-Schritt-Anleitung. Annahme: lokaler Entwicklungsstand läuft,
-Vercel-Account existiert, Supabase-Account muss noch angelegt werden.
+Dieses Dokument beschreibt das Aufsetzen der **getrennten dev/prod-Umgebungen**
+auf Supabase und Vercel. Es ersetzt die v1-Version, die nur ein einziges
+Supabase-Projekt kannte.
 
 ---
 
-## 1. Hosted Supabase anlegen
+## 1. Umgebungs-Strategie
 
-1. Auf https://supabase.com einloggen (oder Account erstellen — geht mit GitHub).
-2. Oben rechts **New project** → **New Organization** anlegen (z. B. "TP-Command").
-3. **New project**:
-   - Name: `tp-command-prod`
-   - Database password: starkes Passwort generieren — **gut speichern**
-   - Region: **Frankfurt (eu-central-1)** (am nächsten zur Schweiz)
-   - Plan: **Free** zum Testen reicht; später auf Pro wechseln
-4. Warten bis Status grün ist (1–2 Min).
-5. Im Projekt: **Project Settings → API** → folgende drei Werte notieren:
-   - `Project URL` → wird `NEXT_PUBLIC_SUPABASE_URL`
-   - `anon public` → wird `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - `service_role secret` → wird `SUPABASE_SERVICE_ROLE_KEY`
-     (⚠️ niemals im Browser, nur Server-side)
+Es gibt **zwei Supabase-Projekte** und **drei Vercel-Umgebungen**:
 
-## 2. Supabase CLI lokal mit Cloud-Projekt verbinden
+| Vercel-Umgebung | Git-Branch            | Supabase-Projekt    | URL                            |
+|-----------------|-----------------------|---------------------|--------------------------------|
+| Production      | `main`                | `tp-command-prod`   | `tp-command.vercel.app`        |
+| Preview         | jeder Feature-Branch  | `tp-command-dev`    | automatische Preview-URL pro PR |
+| Development     | lokal (`pnpm dev`)    | `tp-command-dev`    | `localhost:3000`               |
 
-Im Terminal, im Projekt-Ordner:
+**Grundregeln:**
+
+- Die **prod-DB wird nie direkt bearbeitet.** Schema-Änderungen laufen immer
+  über Migrationen, zuerst auf `dev` getestet.
+- Ein Feature-Branch zeigt **immer** auf `tp-command-dev` – nie auf prod.
+- Env-Vars werden in Vercel **pro Umgebung** gesetzt (Abschnitt 5).
+
+---
+
+## 2. Die zwei Supabase-Projekte anlegen
+
+> Diese Schritte macht **Alex** im Supabase-Dashboard (https://supabase.com/dashboard).
+> Claude Code kann keine Cloud-Konten bedienen.
+
+Für **jedes** der beiden Projekte:
+
+1. **New project** klicken.
+2. Name: `tp-command-dev` bzw. `tp-command-prod`.
+3. Region: **Frankfurt (eu-central-1)**.
+4. Ein **Database Password** vergeben und sicher notieren (Passwort-Manager).
+5. **Create new project** – die Bereitstellung dauert 1–2 Minuten.
+
+### Welche Werte Claude Code braucht
+
+Pro Projekt aus **Project Settings → API** (bzw. **Data API** / **API Keys**):
+
+| Wert                        | Wofür                                              |
+|-----------------------------|----------------------------------------------------|
+| **Project URL**             | `NEXT_PUBLIC_SUPABASE_URL`                         |
+| **anon / publishable key**  | `NEXT_PUBLIC_SUPABASE_ANON_KEY` (öffentlich, RLS schützt) |
+| **service_role / secret key** | `SUPABASE_SERVICE_ROLE_KEY` (NUR serverseitig)   |
+| **Project Ref**             | für `supabase link` (steht auch in der Project-URL) |
+
+Zusätzlich aus **Project Settings → Database** das **Connection String /
+Database Password** – wird für `supabase db push` gebraucht.
+
+> **Hinweis:** Aus v1 existiert bereits ein Supabase-Projekt
+> (`tkqbeqkqqqzsgswbrvoi`, Frankfurt). Es kann als `tp-command-dev`
+> weiterverwendet (umbenennen + DB zurücksetzen, siehe MIGRATION-RESET.md)
+> oder gelöscht werden. Frei entscheidbar.
+
+---
+
+## 3. Supabase-CLI mit dem dev-Projekt verbinden
 
 ```bash
-# CLI-Login (öffnet Browser)
+# Einmalig: CLI gegen den Supabase-Account authentisieren
 supabase login
 
-# Aktuelles Projekt mit Cloud verknüpfen
-# Project-Ref findest du in der Supabase-URL:
-#   https://supabase.com/dashboard/project/abcdefghijklmnop
-#                                          ^^^^^^^^^^^^^^^^ das hier
-# Wichtig: spitze Klammern NICHT mitkopieren!
-supabase link --project-ref DEIN_PROJECT_REF_HIER
-```
+# dev-Projekt verlinken (Ref aus Abschnitt 2)
+supabase link --project-ref <DEV_PROJECT_REF>
 
-## 3. Migrationen + Seed auf Cloud pushen
-
-```bash
-# Alle Migrationen aus supabase/migrations/ deployen
-supabase db push
-
-# Seed-Daten einspielen (Channels). User kommen in Schritt 5.
-psql "$(supabase db url)" -f supabase/seed-prod.sql
-```
-
-> Wenn `psql` nicht installiert ist: alternativ den Inhalt von
-> `supabase/seed-prod.sql` im **Supabase-Dashboard → SQL Editor**
-> einfügen und ausführen.
-
-## 4. Storage-Buckets anlegen
-
-Im Supabase-Dashboard unter **Storage**:
-
-1. **New bucket** → Name `cleaning-photos`, **Private**, Save
-2. **New bucket** → Name `tenant-documents`, **Private**, Save
-
-Buckets sind privat — Zugriff läuft im Code über Signed URLs, das ist
-gewollt.
-
-## 5. Auth-Users für das Team anlegen
-
-Im Supabase-Dashboard unter **Authentication → Users → Add user**:
-
-| Email                       | Passwort  | Notiz                  |
-|-----------------------------|-----------|------------------------|
-| a.huber@threepoint.ch       | (selbst)  | Alex, Admin            |
-| b.schwarz@threepoint.ch     | (Brian)   | Brian, Office          |
-| s.schwarz@threepoint.ch     | (Sharon)  | Sharon, Office         |
-| m.haliti@threepoint.ch      | (Mireme)  | Mireme, Reinigungs-Lead|
-
-Nach dem Anlegen der Auth-User: Im **SQL Editor** den Block aus
-`supabase/seed-prod.sql` Abschnitt "User-Profile" nochmal
-ausführen — er macht dann das Mapping zwischen `auth.users` und unserer
-`users`-Tabelle.
-
-## 6. Auth-Einstellungen für Production
-
-Im Dashboard unter **Authentication → URL Configuration**:
-
-- **Site URL**: `https://<dein-projekt-name>.vercel.app`
-- **Redirect URLs** (Add URL):
-  - `https://<dein-projekt-name>.vercel.app/**`
-  - `http://localhost:3000/**` (für lokale Entwicklung)
-
-Unter **Authentication → Providers**:
-- **Email** aktiviert lassen, "Confirm email" deaktivieren (wir wollen
-  direktes Login mit Passwort, kein Bestätigungs-Mail).
-
-## 7. GitHub-Repo anlegen (falls noch nicht)
-
-```bash
-cd ~/Documents/Claude/Projects/TP-Command
-git init       # wenn noch nicht initialisiert
-git add .
-git commit -m "Initial TP-Command state"
-
-# Auf GitHub neues Privat-Repo anlegen, dann:
-git remote add origin git@github.com:<dein-user>/tp-command.git
-git branch -M main
-git push -u origin main
-```
-
-## 8. Vercel-Projekt erstellen
-
-Auf https://vercel.com:
-
-1. **Add New… → Project**.
-2. GitHub-Repo `tp-command` importieren.
-3. **Framework Preset**: Next.js (auto-detected).
-4. **Root Directory**: `./` lassen.
-5. **Environment Variables** (alle als "Production, Preview, Development"):
-
-| Name | Wert |
-|------|------|
-| `NEXT_PUBLIC_SUPABASE_URL` | aus Schritt 1 |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | aus Schritt 1 |
-| `SUPABASE_SERVICE_ROLE_KEY` | aus Schritt 1 |
-| `NEXT_PUBLIC_APP_URL` | `https://<dein-projekt-name>.vercel.app` |
-| `APP_TIMEZONE` | `Europe/Zurich` |
-| `APP_CURRENCY` | `CHF` |
-| `CRON_SECRET` | Eigenes starkes Random-Passwort. Mit `openssl rand -hex 32` generieren |
-| `FLATFOX_API_TOKEN` | aus deiner lokalen `.env.local` |
-| `FLATFOX_API_URL` | aus deiner lokalen `.env.local` |
-| `FLATFOX_WEBHOOK_SECRET` | aus deiner lokalen `.env.local` |
-| `BOOKING_ICAL_USER_AGENT` | `TP-Command/1.0` |
-| `RESEND_API_KEY` | (leer lassen, kommt erst mit E-Mail-Modul) |
-| `SENTRY_DSN` | (optional, leer lassen) |
-| `NEXT_PUBLIC_SENTRY_DSN` | (optional, leer lassen) |
-
-6. **Deploy** klicken.
-
-Beim ersten Deploy lädt Vercel das Repo, baut die App und deployed.
-Dauer ca. 2–3 Min.
-
-## 9. Erste Anmeldung testen
-
-Nach erfolgreichem Deploy:
-
-1. URL `https://<dein-projekt-name>.vercel.app` öffnen.
-2. Mit `a.huber@threepoint.ch` + Passwort einloggen.
-3. Du landest auf dem Dashboard.
-
-## 10. Apartments + Daten importieren
-
-Über **Wohnungen → Import** den Excel-Import nutzen, um die echten
-Wohnungen zu laden. Dann kannst du via Flatfox-API die ersten
-Anmeldungen synchronisieren.
-
-## 11. Cron-Jobs
-
-Vercel führt automatisch `/api/cron/channels` täglich um 06:00 UTC
-(= 07:00/08:00 CH-Zeit) aus. Das holt Booking.com-Events. Konfiguriert
-ist das in `vercel.json`. Du kannst das im Vercel-Dashboard unter
-**Settings → Cron Jobs** sehen und auch manuell triggern.
-
-> Hinweis: Cron-Jobs sind im Free-Plan auf 1 pro Projekt limitiert,
-> wir haben genau einen — passt.
-
-## Nachträgliche Änderungen deployen
-
-Einfach in Git committen und pushen — Vercel deployed automatisch:
-
-```bash
-git add .
-git commit -m "Beschreibung"
-git push
-```
-
-Branches → Preview-Deployments. Production = `main`.
-
-## Migrations nachträglich
-
-Wenn neue Migrations dazukommen:
-
-```bash
+# Init-Migration auf dev anwenden
 supabase db push
 ```
 
-Vercel-App muss dafür nicht neu deployed werden — die Datenbank-
-Schema-Änderung greift sofort.
+`supabase db push` wendet alle Dateien aus `supabase/migrations/` an:
+
+- `20260521000000_init.sql` – Komplettschema (25 Tabellen, ~40 Enums, RLS,
+  Trigger, 3 Views, 2 Storage-Buckets, 6 Workflow-Templates)
+- `20260521000100_status_today_fallback.sql` – View-Fallback
+- `20260521000200_tenant_kind_company_value.sql` – Enum-Wert `company`
+- `20260521000300_tenant_company.sql` – Firmenmieter-Schema
+
+Die **Storage-Buckets** (`cleaning-photos`, `tenant-documents`) entstehen
+durch die Migration – kein manueller Schritt im Dashboard.
+
+### Schema von dev nach prod bringen
+
+Wenn `dev` getestet ist:
+
+```bash
+supabase link --project-ref <PROD_PROJECT_REF>
+supabase db push
+supabase link --project-ref <DEV_PROJECT_REF>   # wieder zurück auf dev
+```
+
+Details zum Voll-Reset einer Cloud-DB: siehe `MIGRATION-RESET.md`.
 
 ---
 
-## Troubleshooting
+## 4. Auth-URLs in Supabase setzen
 
-**Build-Fehler "missing env"** → Env-Var in Vercel vergessen, Settings
-→ Environment Variables prüfen und neu deployen.
+Pro Projekt unter **Authentication → URL Configuration**:
 
-**"Invalid login credentials"** → Auth-User in Supabase nicht angelegt
-oder Passwort falsch.
+- **tp-command-prod:** Site URL `https://tp-command.vercel.app`,
+  Redirect URLs `https://tp-command.vercel.app/**`
+- **tp-command-dev:** Site URL `http://localhost:3000`,
+  Redirect URLs `http://localhost:3000/**` und das Vercel-Preview-Muster
+  `https://*-<dein-vercel-scope>.vercel.app/**`
 
-**Dashboard zeigt "Forbidden"** → User-Profile-Mapping fehlt: Schritt
-5 (zweiten Teil) ausführen.
+Login läuft über E-Mail + Passwort – die Team-User werden im Dashboard unter
+**Authentication → Users → Add user** angelegt (E-Mail + Passwort,
+„Auto Confirm User" aktivieren). Das in **beiden** Projekten.
 
-**Cron schlägt fehl mit 401** → `CRON_SECRET` in Vercel nicht gesetzt
-oder mit dem Wert nicht synchron. Nach Änderung muss Vercel neu
-deployt werden, damit die Env-Var greift.
+Danach `supabase/seed-prod.sql` im SQL-Editor ausführen – es verknüpft die
+auth-User über die E-Mail mit `public.users` und vergibt die Rollen
+(Alex = admin, Brian/Sharon = office, Mireme = cleaning).
 
-**Storage-Upload schlägt fehl** → Bucket `cleaning-photos` oder
-`tenant-documents` fehlt. Schritt 4 nachholen.
+---
+
+## 5. Vercel-Projekt verbinden
+
+> Diese Schritte macht **Alex** auf https://vercel.com.
+
+1. **Add New… → Project**, das GitHub-Repo `alexh-94-beep/tp-command` importieren.
+2. Framework wird als **Next.js** erkannt, Package-Manager **pnpm**.
+3. **Vor dem ersten Deploy** die Environment-Variables setzen (siehe unten).
+4. **Deploy** klicken.
+
+### Environment-Variables – pro Umgebung
+
+In **Project Settings → Environment Variables**. Wichtig: bei jeder Variable
+die zutreffenden **Environments** ankreuzen.
+
+**Für `Production` (zeigt auf `tp-command-prod`):**
+
+| Variable                        | Wert                                  |
+|----------------------------------|---------------------------------------|
+| `NEXT_PUBLIC_SUPABASE_URL`       | prod Project URL                      |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY`  | prod anon key                         |
+| `SUPABASE_SERVICE_ROLE_KEY`      | prod service_role key                 |
+| `NEXT_PUBLIC_APP_URL`            | `https://tp-command.vercel.app`       |
+| `APP_TIMEZONE`                   | `Europe/Zurich`                       |
+| `APP_CURRENCY`                   | `CHF`                                 |
+| `CRON_SECRET`                    | langer Zufallswert (`openssl rand -hex 32`) |
+
+**Für `Preview` + `Development` (zeigen auf `tp-command-dev`):**
+
+Dieselben Variablen, aber mit den **dev**-Supabase-Werten und
+`NEXT_PUBLIC_APP_URL` leer lassen bzw. auf die Preview-URL. So kann ein
+Feature-Branch nie Produktivdaten anfassen.
+
+> `CRON_SECRET` in allen drei Umgebungen setzen (für Preview/Dev reicht ein
+> Testwert). Phasen-spezifische Keys (`FLATFOX_*`, `RESEND_API_KEY`) kommen
+> dazu, wenn die jeweilige Phase startet.
+
+---
+
+## 6. Vercel-Cron
+
+`vercel.json` enthält den täglichen Channel-Sync:
+
+```json
+{ "crons": [ { "path": "/api/cron/channels", "schedule": "0 6 * * *" } ] }
+```
+
+Vercel ruft `/api/cron/channels` täglich um **06:00 UTC** auf und sendet dabei
+automatisch `Authorization: Bearer <CRON_SECRET>`. Die Route prüft diesen
+Header. In Phase 0 ist die Route ein Platzhalter; die iCal-Pull-Logik kommt in
+Phase 6.
+
+---
+
+## 7. Deploy-Ablauf im Alltag
+
+```
+Feature-Branch  ──push──▶  Vercel Preview (gegen dev-DB)  ──Review──▶
+   Merge nach main  ──▶  Vercel Production (gegen prod-DB)
+```
+
+- Jeder Push auf einen Branch erzeugt eine Preview-URL.
+- Merge auf `main` deployt automatisch nach Production.
+- Schema-Änderungen **vor** dem Merge auf `dev` pushen und auf der Preview-URL
+  testen; nach dem Merge `supabase db push` gegen `prod`.

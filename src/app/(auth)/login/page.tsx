@@ -1,6 +1,6 @@
 import LoginForm from './login-form';
 
-export const metadata = { title: 'Login · TP-Command' };
+export const metadata = { title: 'Login' };
 
 const errorMessages: Record<string, string> = {
   no_profile:
@@ -8,12 +8,13 @@ const errorMessages: Record<string, string> = {
   auth: 'Anmeldung fehlgeschlagen. Bitte erneut versuchen.',
 };
 
-export default function LoginPage({
+export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: { next?: string; error?: string };
+  searchParams: Promise<{ next?: string; error?: string }>;
 }) {
-  const errorMsg = searchParams.error ? errorMessages[searchParams.error] : null;
+  const { next, error } = await searchParams;
+  const errorMsg = error ? errorMessages[error] : null;
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-slate-50 p-6">
@@ -30,7 +31,7 @@ export default function LoginPage({
         )}
 
         <div className="mt-6">
-          <LoginForm next={searchParams.next} />
+          <LoginForm next={next} />
         </div>
       </div>
     </main>

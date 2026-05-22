@@ -1,143 +1,134 @@
-# Cloud-DB auf konsolidierte Migration umstellen
+# Migration-Reset – TP-Command
 
-Die 17 alten Migration-Files wurden zu einer einzigen
-`supabase/migrations/20260501000000_init.sql` zusammengefasst.
+Wie man die konsolidierte Init-Migration sauber auf eine Datenbank anwendet –
+lokal, auf `tp-command-dev` oder (mit Vorsicht) auf `tp-command-prod`.
 
-Damit deine Cloud-Supabase auf den neuen Stand kommt, brauchst du
-**einen kompletten DB-Reset**. Voraussetzung: noch keine echten
-Wohnungen / Buchungen importiert (was aktuell der Fall ist – du bist
-gerade beim Setup).
+Diese Version berücksichtigt die **Zwei-Projekt-Strategie** (dev/prod). Die
+v1-Version kannte nur ein einziges Projekt.
 
 ---
 
-## Schritt 1 — Cloud-DB vollständig leeren
+## Wann braucht man einen Reset?
 
-Im Supabase-Dashboard:
+- Die DB ist in einem inkonsistenten Zustand und soll dem Migrations-Stand
+  exakt entsprechen.
+- Ein bestehendes Supabase-Projekt (z. B. das alte v1-Projekt) soll als
+  frische `tp-command-dev`-DB wiederverwendet werden.
+- Lokal nach Schema-Experimenten.
 
-1. Linkes Menü → **Database → Backups** → ein "On-demand backup"
-   triggern (auch wenn fast nichts drin ist – aus Prinzip).
-2. Linkes Menü → **Project Settings → Database** → ganz unten
-   **Reset database password** ist NICHT was wir wollen. Stattdessen:
-3. Linkes Menü → **SQL Editor** → folgenden Block ausführen, um alle
-   bestehenden Tabellen + Migration-Tracking zu löschen:
-
-```sql
--- Alle public-Schema-Objekte droppen
-drop schema public cascade;
-create schema public;
-grant all on schema public to postgres, anon, authenticated, service_role;
-
--- Migration-Tracking zurücksetzen
-truncate supabase_migrations.schema_migrations;
-```
-
-> ⚠️ Das löscht **alle** Tabellen, Views, Funktionen, Daten im
-> `public`-Schema. Das ist gewollt — wir starten gleich frisch mit
-> der konsolidierten Migration.
-
-## Schritt 2 — Konsolidierte Migration pushen
-
-Im Terminal:
-
-```bash
-cd ~/Documents/Claude/Projects/TP-Command
-supabase db push
-```
-
-Das wendet `20260501000000_init.sql` an. Die alten 17 Files liegen in
-`supabase/migrations/_archive/` und werden von der CLI ignoriert
-(Unterordner werden nicht gescannt).
-
-Der Push erstellt:
-
-- 25 Tabellen
-- alle Enums (40+)
-- alle Indexes + Exclude-Constraints (Doppelbelegungs-Schutz)
-- alle RLS-Policies
-- alle Trigger (`updated_at` + Payment-Recompute)
-- 3 Views (`view_dashboard_kpis`, `view_apartment_status_today`,
-  `view_occupancy_calendar`)
-- 2 Storage-Buckets (`cleaning-photos`, `tenant-documents`) mit Policies
-- 6 Workflow-Templates mit insgesamt 41 Schritten
-
-## Schritt 3 — Auth-User wieder anlegen
-
-Falls du sie schon angelegt hattest, sind sie unter
-`auth.users` noch vorhanden — der Reset trifft nur das `public`-Schema.
-
-Falls nicht: Im Dashboard → **Authentication → Users → Add user**:
-
-- a.huber@threepoint.ch (Admin)
-- b.schwarz@threepoint.ch (Office)
-- s.schwarz@threepoint.ch (Office)
-- m.haliti@threepoint.ch (Cleaning)
-
-## Schritt 4 — Seed-Daten einspielen
-
-Im SQL Editor → Inhalt von `supabase/seed-prod.sql` reinkopieren und Run.
-
-Das legt an:
-
-- 7 Channels (Direkt, Flatfox, Booking.com, …)
-- User-Profile mit Rollen-Mapping zu auth.users
-
-## Schritt 5 — Verifizieren
-
-Im SQL Editor:
-
-```sql
--- Sollte 25 Tabellen zeigen
-select table_name from information_schema.tables
- where table_schema = 'public' order by table_name;
-
--- Sollte 6 Workflow-Templates zeigen
-select code, name, kind, scope from workflow_templates order by code;
-
--- Sollte 4 Users zeigen (wenn Auth-User angelegt sind)
-select email, full_name, role from users order by role, email;
-```
+> **Reset = Datenverlust.** Auf `tp-command-prod` nur dann, wenn die DB noch
+> keine echten Daten enthält. Sobald produktiv gearbeitet wird, niemals mehr.
 
 ---
 
-## Falls etwas schiefgeht
+## Variante A – Lokal (Standardfall)
 
-**`drop schema public cascade` schlägt fehl mit "must be owner"**
-→ Du benutzt einen Read-only-Connection-String. Im Dashboard SQL-Editor
-sollte das aber als Owner laufen. Falls nicht: über `psql` mit dem
-`postgres`-User.
-
-**`supabase db push` sagt "no migrations to push"**
-→ Migration-Tracking nicht zurückgesetzt. Schritt 1 nochmal, dann
-push retry.
-
-**Storage-Buckets schon vorhanden**
-→ Die Migration nutzt `on conflict (id) do nothing`, also harmlos.
-
-**RLS-Policy-Konflikt "policy already exists"**
-→ Heisst, das `public`-Schema wurde nicht ganz geleert. In den
-"Database → Roles" → Storage-Policies sind manuell. Im SQL Editor:
-
-```sql
-drop policy if exists "cleaning-photos read auth"               on storage.objects;
-drop policy if exists "cleaning-photos write office or cleaning" on storage.objects;
-drop policy if exists "cleaning-photos delete admin"             on storage.objects;
-drop policy if exists "tenant-documents read auth"               on storage.objects;
-drop policy if exists "tenant-documents write office"            on storage.objects;
-drop policy if exists "tenant-documents delete admin"            on storage.objects;
-```
-
-Dann `supabase db push` retry.
-
----
-
-## Lokale DB
-
-Falls du auch lokal arbeitest:
+`supabase db reset` verwirft die lokale DB, spielt **alle** Migrationen aus
+`supabase/migrations/` neu ein und führt danach `supabase/seed.sql` aus.
 
 ```bash
 supabase db reset
 ```
 
-Das macht dasselbe automatisch lokal — droppt + repushed alle
-Migrationen + spielt `seed.sql` ein (für Demo-Daten zur lokalen
-Entwicklung).
+Danach DB-Typen neu generieren:
+
+```bash
+pnpm db:types        # supabase gen types typescript --local > src/types/db.ts
+```
+
+---
+
+## Variante B – Cloud-Projekt (dev oder prod)
+
+### B1. Migrationen anwenden (Projekt ist leer / frisch)
+
+```bash
+supabase link --project-ref <PROJECT_REF>
+supabase db push
+```
+
+`supabase db push` spielt alle noch nicht angewendeten Migrationen ein.
+
+### B2. Voll-Reset eines bestehenden Cloud-Projekts
+
+Wenn ein Cloud-Projekt komplett zurückgesetzt werden soll (z. B. das alte
+v1-Projekt → frische dev-DB), reicht ein simples `drop schema public` **nicht**.
+
+**Wichtige Stolpersteine:**
+
+1. **`drop schema public cascade` löscht nur `public`.** Die
+   **Storage-Policies liegen im `storage`-Schema** und bleiben hängen. Sie
+   müssen separat entfernt werden, sonst kollidiert die Init-Migration beim
+   Neu-Anlegen der Bucket-Policies.
+2. **Das Migrations-Tracking muss zurückgesetzt werden.** Supabase merkt sich
+   in `supabase_migrations.schema_migrations`, welche Migrationen schon liefen.
+   Bleibt diese Tabelle gefüllt, überspringt `db push` die Init-Migration.
+
+Im **SQL-Editor des Supabase-Dashboards** des betreffenden Projekts ausführen:
+
+```sql
+-- 1. public-Schema komplett leeren
+drop schema public cascade;
+create schema public;
+grant usage on schema public to anon, authenticated, service_role;
+grant all on schema public to postgres;
+
+-- 2. Storage-Policies aus dem storage-Schema entfernen
+do $$
+declare p record;
+begin
+  for p in
+    select policyname from pg_policies
+    where schemaname = 'storage' and tablename = 'objects'
+  loop
+    execute format('drop policy if exists %I on storage.objects', p.policyname);
+  end loop;
+end $$;
+
+delete from storage.buckets where id in ('cleaning-photos', 'tenant-documents');
+
+-- 3. Migrations-Tracking leeren
+truncate supabase_migrations.schema_migrations;
+```
+
+Danach lokal:
+
+```bash
+supabase link --project-ref <PROJECT_REF>
+supabase db push
+```
+
+### B3. Typen aus dem Cloud-Projekt generieren
+
+```bash
+pnpm db:types:remote     # supabase gen types typescript --linked > src/types/db.ts
+```
+
+---
+
+## Reihenfolge der Migrationen
+
+Die Dateien werden nach Zeitstempel sortiert angewendet:
+
+1. `20260521000000_init.sql` – Gesamtschema
+2. `20260521000100_status_today_fallback.sql` – View `view_apartment_status_today`
+3. `20260521000200_tenant_kind_company_value.sql` – Enum-Wert `company`
+4. `20260521000300_tenant_company.sql` – Firmenmieter-Spalten + Constraint
+
+> Migration 3 und 4 sind bewusst getrennt: Postgres erlaubt einen frisch per
+> `ALTER TYPE ... ADD VALUE` hinzugefügten Enum-Wert nicht in derselben
+> Transaktion zu verwenden (Fehler `55P04`). Der Wert `company` muss erst
+> committet sein, bevor Constraint und Index ihn benutzen können. **Diese
+> Trennung nicht wieder zusammenführen.**
+
+---
+
+## Nach jedem Schema-Wechsel
+
+DB-Typen neu generieren, sonst läuft `pnpm typecheck` gegen ein veraltetes
+`src/types/db.ts`:
+
+```bash
+pnpm db:types          # lokal
+pnpm db:types:remote   # gegen das verlinkte Cloud-Projekt
+```

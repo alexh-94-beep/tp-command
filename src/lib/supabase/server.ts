@@ -1,34 +1,31 @@
 import { cookies } from 'next/headers';
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { createServerClient } from '@supabase/ssr';
+import type { Database } from '@/types/db';
 
 /**
  * Supabase-Client für Server Components und Server Actions.
- * Liest die Session aus den Next.js-Cookies. Schreibt nur, wenn aufgerufen
- * aus einem Kontext mit veränderbaren Cookies (z. B. Server Action / Route Handler).
+ * Next 15+/16: `cookies()` ist async — daher ist diese Funktion async.
+ * Liest die Session aus den Next.js-Cookies.
  */
-export function createSupabaseServerClient() {
-  const cookieStore = cookies();
+export async function createSupabaseServerClient() {
+  const cookieStore = await cookies();
 
-  return createServerClient(
+  return createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
+        getAll() {
+          return cookieStore.getAll();
         },
-        set(name: string, value: string, options: CookieOptions) {
+        setAll(cookiesToSet) {
           try {
-            cookieStore.set({ name, value, ...options });
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options),
+            );
           } catch {
-            // Server Components dürfen Cookies nicht setzen – Middleware übernimmt.
-          }
-        },
-        remove(name: string, options: CookieOptions) {
-          try {
-            cookieStore.set({ name, value: '', ...options });
-          } catch {
-            /* siehe oben */
+            // Server Components dürfen Cookies nicht setzen –
+            // die Middleware übernimmt den Session-Refresh.
           }
         },
       },

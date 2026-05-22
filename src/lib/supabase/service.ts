@@ -1,10 +1,10 @@
 import { createClient } from '@supabase/supabase-js';
+import type { Database } from '@/types/db';
 
 /**
  * Service-Role-Client. Umgeht RLS komplett – darf NUR in:
  *   - Cron-Routen (/api/cron/*)
  *   - Webhook-Routen (/api/webhooks/*)
- *   - Edge Functions
  * verwendet werden. Niemals im Browser oder regulären Server Components.
  */
 export function createSupabaseServiceClient() {
@@ -15,7 +15,7 @@ export function createSupabaseServiceClient() {
     throw new Error('Supabase Service-Role-Konfiguration fehlt.');
   }
 
-  return createClient(url, serviceKey, {
+  return createClient<Database>(url, serviceKey, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
 }
