@@ -19,7 +19,8 @@
     "db:types": "supabase gen types typescript --local > src/types/db.ts",
     "db:types:remote": "supabase gen types typescript --linked > src/types/db.ts",
     "db:diff": "supabase db diff",
-    "import:apartments": "tsx scripts/import-apartments.ts"
+    "import:apartments": "tsx scripts/import-apartments.ts",
+    "import:tenants-bookings": "tsx scripts/import-tenants-bookings.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.2",
