@@ -15,7 +15,9 @@
     "db:reset": "supabase db reset",
     "db:types": "supabase gen types typescript --local > src/types/db.ts",
     "db:types:remote": "supabase gen types typescript --linked > src/types/db.ts",
-    "import:apartments": "tsx scripts/import-apartments.ts"
+    "import:apartments": "tsx scripts/import-apartments.ts",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",
@@ -46,6 +48,7 @@
     "tailwindcss": "^4.3.0",
     "tsx": "^4.22.3",
     "typescript": "^5.9.3",
+    "vitest": "^4.1.7",
     "ws": "^8.21.0"
   }
 }
