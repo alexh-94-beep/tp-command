@@ -25,6 +25,29 @@ export type ApartmentOwnership = Enums['apartment_ownership'];
 export type NameTagStatus = Enums['name_tag_status'];
 export type RentalType = Enums['rental_type'];
 
+// ── Buchungen ──────────────────────────────────────────────────────────
+export type Booking = Tables['bookings']['Row'];
+export type BookingInsert = Tables['bookings']['Insert'];
+export type BookingUpdate = Tables['bookings']['Update'];
+
+export type BookingStatus = Enums['booking_status'];
+export type BookingPaymentStatus = Enums['booking_payment_status'];
+export type CheckInOutStatus = Enums['checkinout_status'];
+export type ContractStatus = Enums['contract_status'];
+
+// ── Mieter / Gäste ─────────────────────────────────────────────────────
+export type Tenant = Tables['tenants']['Row'];
+export type TenantInsert = Tables['tenants']['Insert'];
+
+export type TenantKind = Enums['tenant_kind'];
+export type TenantSource = Enums['tenant_source'];
+
+// ── Blocks (Sperren) ───────────────────────────────────────────────────
+export type Block = Tables['blocks']['Row'];
+
+// ── Channels (Direkt/Flatfox/Booking.com/…) ────────────────────────────
+export type Channel = Tables['channels']['Row'];
+
 // ── Auth / Rollen ──────────────────────────────────────────────────────
 export type UserRole = Enums['user_role'];
 

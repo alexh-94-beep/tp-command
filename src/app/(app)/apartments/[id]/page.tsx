@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { Pencil, ArrowLeft } from 'lucide-react';
+import { Pencil, ArrowLeft, Plus } from 'lucide-react';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/shared/page-header';
 import { Button } from '@/components/ui/button';
@@ -58,12 +58,20 @@ export default async function ApartmentDetailPage({
         title={`Wohnung ${apartment.number}`}
         description={`${apartmentTypeLabel[apartment.type]} · ${apartment.size_sqm ?? '?'} m² · Etage ${apartment.floor}`}
         actions={
-          <Link href={`/apartments/${apartment.id}/edit`}>
-            <Button>
-              <Pencil className="h-4 w-4" />
-              Bearbeiten
-            </Button>
-          </Link>
+          <div className="flex gap-2">
+            <Link href={`/bookings/new?apartment=${apartment.id}`}>
+              <Button variant="secondary">
+                <Plus className="h-4 w-4" />
+                Neue Buchung
+              </Button>
+            </Link>
+            <Link href={`/apartments/${apartment.id}/edit`}>
+              <Button>
+                <Pencil className="h-4 w-4" />
+                Bearbeiten
+              </Button>
+            </Link>
+          </div>
         }
       />
 

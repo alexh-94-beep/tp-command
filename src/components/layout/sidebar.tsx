@@ -20,7 +20,7 @@ type IconType = React.ComponentType<{ className?: string }>;
 
 interface ReadyNavItem {
   label: string;
-  href: '/dashboard' | '/apartments';
+  href: '/dashboard' | '/apartments' | '/calendar' | '/bookings' | '/tenants';
   icon: IconType;
   roles?: AppRole[];
 }
@@ -28,21 +28,20 @@ interface ReadyNavItem {
 const READY: ReadyNavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { label: 'Wohnungen', href: '/apartments', icon: Home },
+  { label: 'Belegung', href: '/calendar', icon: Calendar },
+  { label: 'Buchungen', href: '/bookings', icon: BookOpen },
+  { label: 'Mieter & Gäste', href: '/tenants', icon: Users },
 ];
 
 /**
  * Die übrigen Module sind als deaktivierte Einträge sichtbar (Roadmap)
  * und werden pro Phase in das READY-Array überführt, sobald die Routen
- * gebaut sind. typedRoutes akzeptiert nur existierende Routen, daher
- * tragen UPCOMING-Items keinen href.
+ * gebaut sind.
  */
 const UPCOMING: { label: string; icon: IconType; roles?: AppRole[] }[] = [
-  { label: 'Belegung', icon: Calendar },
-  { label: 'Buchungen', icon: BookOpen },
   { label: 'Aufgaben', icon: ListChecks, roles: ['admin', 'office'] },
   { label: 'Reinigung', icon: Sparkles },
   { label: 'Zahlungen', icon: CreditCard, roles: ['admin', 'office', 'management'] },
-  { label: 'Mieter & Gäste', icon: Users },
   { label: 'Einstellungen', icon: Settings, roles: ['admin'] },
 ];
 
