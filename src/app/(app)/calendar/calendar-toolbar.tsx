@@ -7,14 +7,25 @@ import { ChevronLeft, ChevronRight, CalendarDays } from 'lucide-react';
 import { addDaysIso, todayIso } from '@/lib/dates';
 import { apartmentTypeLabel } from '@/lib/labels';
 import { Button } from '@/components/ui/button';
+import { ChipFilter } from '@/components/ui/chip-filter';
 
-const BUILDINGS = ['C', 'D', 'E'] as const;
-const TYPES = ['junior', 'senior'] as const;
-const RENTAL_TYPES = [
+const BUILDING_OPTIONS = [
+  { value: 'C', label: 'Haus C' },
+  { value: 'D', label: 'Haus D' },
+  { value: 'E', label: 'Haus E' },
+] as const;
+
+const TYPE_OPTIONS = [
+  { value: 'junior', label: apartmentTypeLabel.junior },
+  { value: 'senior', label: apartmentTypeLabel.senior },
+] as const;
+
+const RENTAL_OPTIONS = [
   { value: 'long_term', label: 'Langzeit' },
   { value: 'short_term', label: 'Kurzzeit' },
   { value: 'booking', label: 'Booking & Co.' },
 ] as const;
+
 const DAYS_PRESETS = [14, 30, 60, 90];
 
 const inputCls =
@@ -37,118 +48,88 @@ export default function CalendarToolbar({ start, days }: { start: string; days: 
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white p-3">
-      <div className="flex items-center gap-1">
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() => nav({ start: addDaysIso(start, -days) })}
-          disabled={pending}
-          title="Zurück"
-        >
-          <ChevronLeft className="h-4 w-4" />
-        </Button>
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() => nav({ start: todayIso() })}
-          disabled={pending}
-        >
-          <CalendarDays className="h-4 w-4" />
-          Heute
-        </Button>
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() => nav({ start: addDaysIso(start, days) })}
-          disabled={pending}
-          title="Vor"
-        >
-          <ChevronRight className="h-4 w-4" />
-        </Button>
+    <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="flex items-center gap-1">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => nav({ start: addDaysIso(start, -days) })}
+            disabled={pending}
+            title="Zurück"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => nav({ start: todayIso() })}
+            disabled={pending}
+          >
+            <CalendarDays className="h-4 w-4" />
+            Heute
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => nav({ start: addDaysIso(start, days) })}
+            disabled={pending}
+            title="Vor"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+
+        <div className="ml-2 flex items-center gap-2 text-sm">
+          <label className="text-slate-500">Start</label>
+          <input
+            type="date"
+            value={start}
+            onChange={(e) => nav({ start: e.target.value })}
+            className={inputCls}
+          />
+        </div>
+
+        <div className="flex items-center gap-2 text-sm">
+          <label className="text-slate-500">Tage</label>
+          <select
+            value={days}
+            onChange={(e) => nav({ days: e.target.value })}
+            className={inputCls}
+          >
+            {DAYS_PRESETS.map((d) => (
+              <option key={d} value={d}>
+                {d}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <label className="ml-auto inline-flex items-center gap-2 text-sm text-slate-600">
+          <input
+            type="checkbox"
+            checked={sp.get('showSold') === '1'}
+            onChange={(e) => nav({ showSold: e.target.checked ? '1' : '' })}
+          />
+          Extern verkaufte zeigen
+        </label>
       </div>
 
-      <div className="ml-2 flex items-center gap-2 text-sm">
-        <label className="text-slate-500">Start</label>
-        <input
-          type="date"
-          value={start}
-          onChange={(e) => nav({ start: e.target.value })}
-          className={inputCls}
+      <div className="space-y-2 border-t border-slate-100 pt-3">
+        <ChipFilter
+          label="Gebäude"
+          paramKey="building"
+          options={BUILDING_OPTIONS}
+          basePath="/calendar"
+        />
+        <ChipFilter label="Typ" paramKey="type" options={TYPE_OPTIONS} basePath="/calendar" />
+        <ChipFilter
+          label="Mietart"
+          paramKey="rental_type"
+          options={RENTAL_OPTIONS}
+          basePath="/calendar"
         />
       </div>
-
-      <div className="flex items-center gap-2 text-sm">
-        <label className="text-slate-500">Tage</label>
-        <select
-          value={days}
-          onChange={(e) => nav({ days: e.target.value })}
-          className={inputCls}
-        >
-          {DAYS_PRESETS.map((d) => (
-            <option key={d} value={d}>
-              {d}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="flex items-center gap-2 text-sm">
-        <label className="text-slate-500">Gebäude</label>
-        <select
-          value={sp.get('building') ?? ''}
-          onChange={(e) => nav({ building: e.target.value })}
-          className={inputCls}
-        >
-          <option value="">Alle</option>
-          {BUILDINGS.map((b) => (
-            <option key={b} value={b}>
-              {b}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="flex items-center gap-2 text-sm">
-        <label className="text-slate-500">Typ</label>
-        <select
-          value={sp.get('type') ?? ''}
-          onChange={(e) => nav({ type: e.target.value })}
-          className={inputCls}
-        >
-          <option value="">Alle</option>
-          {TYPES.map((t) => (
-            <option key={t} value={t}>
-              {apartmentTypeLabel[t]}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div className="flex items-center gap-2 text-sm">
-        <label className="text-slate-500">Mietart</label>
-        <select
-          value={sp.get('rental_type') ?? ''}
-          onChange={(e) => nav({ rental_type: e.target.value })}
-          className={inputCls}
-        >
-          <option value="">Alle</option>
-          {RENTAL_TYPES.map((rt) => (
-            <option key={rt.value} value={rt.value}>
-              {rt.label}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <label className="ml-auto inline-flex items-center gap-2 text-sm text-slate-600">
-        <input
-          type="checkbox"
-          checked={sp.get('showSold') === '1'}
-          onChange={(e) => nav({ showSold: e.target.checked ? '1' : '' })}
-        />
-        Extern verkaufte zeigen
-      </label>
     </div>
   );
 }

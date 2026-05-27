@@ -2,7 +2,14 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/shared/page-header';
 import { EmptyState } from '@/components/shared/empty-state';
 import { Badge } from '@/components/ui/badge';
+import { ChipFilter } from '@/components/ui/chip-filter';
 import type { TenantKind } from '@/types/aliases';
+
+const KIND_OPTIONS = [
+  { value: 'tenant', label: 'Mieter' },
+  { value: 'guest', label: 'Gast' },
+  { value: 'company', label: 'Firma' },
+] as const;
 
 export const metadata = { title: 'Mieter & Gäste' };
 
@@ -38,9 +45,10 @@ export default async function TenantsPage({
     )
     .order('last_name', { ascending: true, nullsFirst: false });
 
-  if (sp.kind === 'tenant' || sp.kind === 'guest' || sp.kind === 'company') {
-    query = query.eq('tenant_kind', sp.kind);
-  }
+  const kinds = (sp.kind ?? '')
+    .split(',')
+    .filter((v): v is TenantKind => v === 'tenant' || v === 'guest' || v === 'company');
+  if (kinds.length) query = query.in('tenant_kind', kinds);
   if (sp.q) {
     const term = sp.q.trim();
     if (term) {
@@ -60,43 +68,36 @@ export default async function TenantsPage({
         description="Personen und Firmen, die mit einer Buchung verknüpft sind. Anlegen geschieht beim Erstellen einer Buchung."
       />
 
-      <form
-        method="get"
-        action="/tenants"
-        className="flex flex-wrap items-end gap-3 rounded-xl border border-slate-200 bg-white p-4"
-      >
-        <div className="grow">
-          <label className="text-xs font-medium tracking-wide text-slate-500 uppercase">
+      <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
+        <form method="get" action="/tenants" className="max-w-md">
+          {/* preserve kind state when submitting search */}
+          {kinds.length > 0 && <input type="hidden" name="kind" value={kinds.join(',')} />}
+          <label className="text-[10px] font-semibold tracking-wide text-slate-500 uppercase">
             Suche
           </label>
-          <input
-            type="search"
-            name="q"
-            defaultValue={sp.q ?? ''}
-            placeholder="Name, E-Mail oder Firma…"
-            className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:border-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none"
-          />
-        </div>
-        <div>
-          <label className="text-xs font-medium tracking-wide text-slate-500 uppercase">Art</label>
-          <select
-            name="kind"
-            defaultValue={sp.kind ?? ''}
-            className="mt-1 block rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:border-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none"
-          >
-            <option value="">Alle</option>
-            <option value="tenant">Mieter</option>
-            <option value="guest">Gast</option>
-            <option value="company">Firma</option>
-          </select>
-        </div>
-        <button
-          type="submit"
-          className="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-800"
-        >
-          Filtern
-        </button>
-      </form>
+          <div className="mt-1 flex gap-2">
+            <input
+              type="search"
+              name="q"
+              defaultValue={sp.q ?? ''}
+              placeholder="Name, E-Mail oder Firma…"
+              className="block w-full rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm shadow-sm focus:border-slate-900 focus:ring-1 focus:ring-slate-900 focus:outline-none"
+            />
+            <button
+              type="submit"
+              className="rounded-md bg-slate-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-slate-800"
+            >
+              Suchen
+            </button>
+          </div>
+        </form>
+        <ChipFilter
+          label="Art"
+          paramKey="kind"
+          options={KIND_OPTIONS}
+          basePath="/tenants"
+        />
+      </div>
 
       {rows.length === 0 ? (
         <EmptyState

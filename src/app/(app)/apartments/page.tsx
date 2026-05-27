@@ -37,10 +37,16 @@ export default async function ApartmentsPage({
 
   let query = supabase.from('apartments').select('*').order('number', { ascending: true });
 
-  if (sp.building) query = query.eq('building', sp.building);
-  if (sp.type) query = query.eq('type', sp.type as ApartmentType);
-  if (sp.status) query = query.eq('status', sp.status as ApartmentStatus);
-  if (sp.ownership) query = query.eq('ownership', sp.ownership as ApartmentOwnership);
+  // Multi-Select: Werte sind komma-separiert in der URL.
+  const csv = (s: string | undefined) => (s ?? '').split(',').filter(Boolean);
+  const buildings = csv(sp.building);
+  const types = csv(sp.type) as ApartmentType[];
+  const statuses = csv(sp.status) as ApartmentStatus[];
+  const ownerships = csv(sp.ownership) as ApartmentOwnership[];
+  if (buildings.length) query = query.in('building', buildings);
+  if (types.length) query = query.in('type', types);
+  if (statuses.length) query = query.in('status', statuses);
+  if (ownerships.length) query = query.in('ownership', ownerships);
   if (sp.q) {
     const term = sp.q.trim();
     if (term) {

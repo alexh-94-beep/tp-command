@@ -5,10 +5,24 @@ import { PageHeader } from '@/components/shared/page-header';
 import { EmptyState } from '@/components/shared/empty-state';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { ChipFilter } from '@/components/ui/chip-filter';
 import { formatDate, formatEndDate } from '@/lib/dates';
 import { formatMoney } from '@/lib/money';
 import { rentalTypeLabel } from '@/lib/labels';
-import type { BookingStatus } from '@/types/aliases';
+import type { BookingStatus, RentalType } from '@/types/aliases';
+
+const STATUS_OPTIONS = [
+  { value: 'planned', label: 'Geplant' },
+  { value: 'active', label: 'Aktiv' },
+  { value: 'completed', label: 'Abgeschlossen' },
+  { value: 'cancelled', label: 'Storniert' },
+] as const;
+
+const RENTAL_OPTIONS = [
+  { value: 'long_term', label: rentalTypeLabel.long_term },
+  { value: 'short_term', label: rentalTypeLabel.short_term },
+  { value: 'booking', label: rentalTypeLabel.booking },
+] as const;
 
 export const metadata = { title: 'Buchungen' };
 
@@ -46,9 +60,11 @@ export default async function BookingsPage({
     )
     .order('start_date', { ascending: false });
 
-  if (sp.status) query = query.eq('status', sp.status as BookingStatus);
-  if (sp.rental_type)
-    query = query.eq('rental_type', sp.rental_type as 'long_term' | 'short_term' | 'booking');
+  const csv = (s: string | undefined) => (s ?? '').split(',').filter(Boolean);
+  const statuses = csv(sp.status) as BookingStatus[];
+  const rentals = csv(sp.rental_type) as RentalType[];
+  if (statuses.length) query = query.in('status', statuses);
+  if (rentals.length) query = query.in('rental_type', rentals);
 
   const { data } = await query;
   const rows = data ?? [];
@@ -68,34 +84,19 @@ export default async function BookingsPage({
         }
       />
 
-      <div className="flex flex-wrap gap-2 text-xs">
-        <FilterPill href="/bookings" active={!sp.status && !sp.rental_type}>
-          Alle
-        </FilterPill>
-        <FilterPill href="/bookings?status=active" active={sp.status === 'active'}>
-          Aktiv
-        </FilterPill>
-        <FilterPill href="/bookings?status=planned" active={sp.status === 'planned'}>
-          Geplant
-        </FilterPill>
-        <FilterPill
-          href="/bookings?rental_type=long_term"
-          active={sp.rental_type === 'long_term'}
-        >
-          Langzeit
-        </FilterPill>
-        <FilterPill
-          href="/bookings?rental_type=short_term"
-          active={sp.rental_type === 'short_term'}
-        >
-          Kurzzeit
-        </FilterPill>
-        <FilterPill
-          href="/bookings?rental_type=booking"
-          active={sp.rental_type === 'booking'}
-        >
-          Booking
-        </FilterPill>
+      <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
+        <ChipFilter
+          label="Status"
+          paramKey="status"
+          options={STATUS_OPTIONS}
+          basePath="/bookings"
+        />
+        <ChipFilter
+          label="Mietart"
+          paramKey="rental_type"
+          options={RENTAL_OPTIONS}
+          basePath="/bookings"
+        />
       </div>
 
       {rows.length === 0 ? (
@@ -166,31 +167,3 @@ export default async function BookingsPage({
   );
 }
 
-function FilterPill({
-  href,
-  active,
-  children,
-}: {
-  href:
-    | '/bookings'
-    | '/bookings?status=active'
-    | '/bookings?status=planned'
-    | '/bookings?rental_type=long_term'
-    | '/bookings?rental_type=short_term'
-    | '/bookings?rental_type=booking';
-  active: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <Link
-      href={href}
-      className={`rounded-full border px-3 py-1 transition ${
-        active
-          ? 'border-slate-900 bg-slate-900 text-white'
-          : 'border-slate-200 bg-white text-slate-700 hover:bg-slate-100'
-      }`}
-    >
-      {children}
-    </Link>
-  );
-}

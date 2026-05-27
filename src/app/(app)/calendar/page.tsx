@@ -36,18 +36,22 @@ export default async function CalendarPage({
   const days = Math.max(7, Math.min(120, Number(sp.days ?? DEFAULT_DAYS) || DEFAULT_DAYS));
   const end = addDaysIso(start, days);
 
+  const csv = (s: string | undefined) => (s ?? '').split(',').filter(Boolean);
+  const types = csv(sp.type).filter((v): v is 'junior' | 'senior' | 'suite' | 'studio' =>
+    ['junior', 'senior', 'suite', 'studio'].includes(v),
+  );
+  const rentalTypes = csv(sp.rental_type).filter(
+    (v): v is 'long_term' | 'short_term' | 'booking' =>
+      ['long_term', 'short_term', 'booking'].includes(v),
+  );
+
   const supabase = await createSupabaseServerClient();
   const data = await getCalendarData(supabase, {
     startDate: start,
     endDate: end,
-    building: sp.building || undefined,
-    type: sp.type || undefined,
-    rentalType:
-      sp.rental_type === 'long_term' ||
-      sp.rental_type === 'short_term' ||
-      sp.rental_type === 'booking'
-        ? sp.rental_type
-        : undefined,
+    buildings: csv(sp.building),
+    types,
+    rentalTypes,
     includeSoldExternal: sp.showSold === '1',
   });
 

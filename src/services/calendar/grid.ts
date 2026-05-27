@@ -32,9 +32,10 @@ export interface CalendarData {
 export interface CalendarFilters {
   startDate: string;
   endDate: string;
-  building?: string;
-  type?: string;
-  rentalType?: 'long_term' | 'short_term' | 'booking';
+  /** Multi-Select: 1..n Gebäude, leer/undefined = alle */
+  buildings?: string[];
+  types?: ('junior' | 'senior' | 'suite' | 'studio')[];
+  rentalTypes?: ('long_term' | 'short_term' | 'booking')[];
   includeSoldExternal?: boolean;
 }
 
@@ -90,8 +91,8 @@ export async function getCalendarData(
     )
     .order('number');
   if (!filters.includeSoldExternal) aptQuery = aptQuery.neq('ownership', 'sold_external');
-  if (filters.building) aptQuery = aptQuery.eq('building', filters.building);
-  if (filters.type) aptQuery = aptQuery.eq('type', filters.type as 'junior' | 'senior' | 'suite' | 'studio');
+  if (filters.buildings?.length) aptQuery = aptQuery.in('building', filters.buildings);
+  if (filters.types?.length) aptQuery = aptQuery.in('type', filters.types);
 
   const { data: apartments } = await aptQuery;
   const apartmentList = apartments ?? [];
@@ -106,7 +107,8 @@ export async function getCalendarData(
     .in('status', ['planned', 'active'])
     .lt('start_date', filters.endDate)
     .gt('end_date', filters.startDate);
-  if (filters.rentalType) bookingsQuery = bookingsQuery.eq('rental_type', filters.rentalType);
+  if (filters.rentalTypes?.length)
+    bookingsQuery = bookingsQuery.in('rental_type', filters.rentalTypes);
   const { data: bookings } = await bookingsQuery;
 
   const { data: blocks } = await supabase
@@ -156,7 +158,7 @@ export async function getCalendarData(
     });
     if (!range) continue;
     const inferred = inferMirrorRentalType(a.status);
-    if (filters.rentalType && filters.rentalType !== inferred) continue;
+    if (filters.rentalTypes?.length && !filters.rentalTypes.includes(inferred)) continue;
     if (range.start >= filters.endDate || range.end <= filters.startDate) continue;
 
     events.push({
