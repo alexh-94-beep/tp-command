@@ -12,6 +12,7 @@ import {
   type FlatfoxListing,
 } from '@/lib/channels/flatfox/client';
 import { checkAvailability } from '@/services/availability/check';
+import { instantiateBookingTasks } from '@/services/workflow/instantiate';
 import {
   buildApartmentIndex,
   listingToApartmentNumber,
@@ -372,10 +373,12 @@ export async function importFlatfoxApplication(
     docsStored++;
   }
 
-  // Hinweis: Workflow-Aufgaben (instantiateBookingTasks) folgen in Phase 4.
+  // Workflow-Aufgaben (Langzeit Einzug + Auszug) instantiieren — Phase 4
+  await instantiateBookingTasks(supabase, booking.id);
 
   revalidatePath('/bookings');
   revalidatePath('/bookings/flatfox');
+  revalidatePath('/tasks');
   revalidatePath(`/apartments/${apartment.id}`);
 
   return { ok: true, bookingId: booking.id, documentsStored: docsStored };

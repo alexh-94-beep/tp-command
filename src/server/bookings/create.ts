@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { requireRole } from '@/lib/auth/session';
 import { checkAvailability, type AvailabilityConflict } from '@/services/availability/check';
+import { instantiateBookingTasks } from '@/services/workflow/instantiate';
 
 const OPEN_END = '9999-12-31';
 
@@ -171,9 +172,11 @@ export async function createBooking(formData: FormData): Promise<CreateBookingRe
     return { ok: false, error: bookingErr.message };
   }
 
-  // Hinweis: Workflow-Aufgaben (instantiateBookingTasks) folgen in Phase 4.
+  // Workflow-Aufgaben aus den Templates instantiieren (Phase 4)
+  await instantiateBookingTasks(supabase, booking.id);
 
   revalidatePath('/bookings');
+  revalidatePath('/tasks');
   revalidatePath('/dashboard');
   revalidatePath(`/apartments/${v.apartment_id}`);
 

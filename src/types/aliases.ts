@@ -48,6 +48,18 @@ export type Block = Tables['blocks']['Row'];
 // ── Channels (Direkt/Flatfox/Booking.com/…) ────────────────────────────
 export type Channel = Tables['channels']['Row'];
 
+// ── Workflow (Phase 4) ─────────────────────────────────────────────────
+export type BookingTask = Tables['booking_tasks']['Row'];
+export type BookingTaskInsert = Tables['booking_tasks']['Insert'];
+export type WorkflowTemplate = Tables['workflow_templates']['Row'];
+export type WorkflowTemplateTask = Tables['workflow_template_tasks']['Row'];
+
+export type BookingTaskStatus = Enums['booking_task_status'];
+export type WorkflowKind = Enums['workflow_kind'];
+export type WorkflowScope = Enums['workflow_scope'];
+export type TaskDueAnchor = Enums['task_due_anchor'];
+export type TaskAssigneeRole = Enums['task_assignee_role'];
+
 // ── Auth / Rollen ──────────────────────────────────────────────────────
 export type UserRole = Enums['user_role'];
 

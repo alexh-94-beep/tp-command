@@ -15,6 +15,9 @@ import type {
   CheckInOutStatus,
   ContractStatus,
 } from '@/types/aliases';
+import BookingTasksSection, {
+  type BookingTaskRow,
+} from './booking-tasks-section';
 
 export const metadata = { title: 'Buchung' };
 
@@ -91,6 +94,34 @@ export default async function BookingDetailPage({
     .single();
 
   if (!b) notFound();
+
+  // Workflow-Aufgaben laden + completed_by joinen
+  const { data: rawTasks } = await supabase
+    .from('booking_tasks')
+    .select(
+      'id, kind, position, code, title, description, category, due_date, status, is_optional, is_conditional, notes, template_task_id, completed_at, completed_by_user:users!booking_tasks_completed_by_fkey(full_name)',
+    )
+    .eq('booking_id', b.id)
+    .order('kind', { ascending: true })
+    .order('position', { ascending: true });
+
+  const tasks: BookingTaskRow[] = (rawTasks ?? []).map((r) => ({
+    id: r.id,
+    kind: r.kind,
+    position: r.position,
+    code: r.code,
+    title: r.title,
+    description: r.description,
+    category: r.category,
+    due_date: r.due_date,
+    status: r.status,
+    is_optional: r.is_optional,
+    is_conditional: r.is_conditional,
+    notes: r.notes,
+    template_task_id: r.template_task_id,
+    completed_at: r.completed_at,
+    completed_by_name: r.completed_by_user?.full_name ?? null,
+  }));
 
   return (
     <div className="space-y-6">
@@ -189,10 +220,9 @@ export default async function BookingDetailPage({
         )}
       </div>
 
-      {/*
-        Workflow-Aufgaben (Phase 4: workflow-engine) und Übergabe/Abnahme-
-        Sections (Phase 8: handover) werden hier in späteren Phasen ergänzt.
-      */}
+      <BookingTasksSection bookingId={b.id} tasks={tasks} />
+
+      {/* Übergabe/Abnahme-Section folgt in Phase 8 (handover). */}
     </div>
   );
 }

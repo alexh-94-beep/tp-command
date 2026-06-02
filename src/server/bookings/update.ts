@@ -6,6 +6,10 @@ import { revalidatePath } from 'next/cache';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { requireRole } from '@/lib/auth/session';
 import { checkAvailability, type AvailabilityConflict } from '@/services/availability/check';
+import {
+  instantiateBookingTasks,
+  recomputeBookingTaskDueDates,
+} from '@/services/workflow/instantiate';
 
 const OPEN_END = '9999-12-31';
 
@@ -110,9 +114,14 @@ export async function updateBooking(formData: FormData): Promise<UpdateBookingRe
     return { ok: false, error: updateErr.message };
   }
 
-  // Hinweis: Workflow-Aufgaben-Recompute folgt in Phase 4.
+  // Workflow-Aufgaben (Phase 4):
+  // - fehlende Schritte ergaenzen (z.B. wenn Mietart gewechselt wurde)
+  // - Faelligkeitsdaten der offenen Aufgaben neu berechnen
+  await instantiateBookingTasks(supabase, v.id);
+  await recomputeBookingTaskDueDates(supabase, v.id);
 
   revalidatePath('/bookings');
+  revalidatePath('/tasks');
   revalidatePath(`/bookings/${v.id}`);
   revalidatePath(`/apartments/${existing.apartment_id}`);
   revalidatePath('/dashboard');
