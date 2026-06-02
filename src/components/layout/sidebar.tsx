@@ -20,7 +20,13 @@ type IconType = React.ComponentType<{ className?: string }>;
 
 interface ReadyNavItem {
   label: string;
-  href: '/dashboard' | '/apartments' | '/calendar' | '/bookings' | '/tenants';
+  href:
+    | '/dashboard'
+    | '/apartments'
+    | '/calendar'
+    | '/bookings'
+    | '/tenants'
+    | '/settings';
   icon: IconType;
   roles?: AppRole[];
 }
@@ -31,6 +37,7 @@ const READY: ReadyNavItem[] = [
   { label: 'Belegung', href: '/calendar', icon: Calendar },
   { label: 'Buchungen', href: '/bookings', icon: BookOpen },
   { label: 'Mieter & Gäste', href: '/tenants', icon: Users },
+  { label: 'Einstellungen', href: '/settings', icon: Settings, roles: ['admin'] },
 ];
 
 /**
@@ -42,7 +49,6 @@ const UPCOMING: { label: string; icon: IconType; roles?: AppRole[] }[] = [
   { label: 'Aufgaben', icon: ListChecks, roles: ['admin', 'office'] },
   { label: 'Reinigung', icon: Sparkles },
   { label: 'Zahlungen', icon: CreditCard, roles: ['admin', 'office', 'management'] },
-  { label: 'Einstellungen', icon: Settings, roles: ['admin'] },
 ];
 
 export function Sidebar({ role }: { role: AppRole }) {

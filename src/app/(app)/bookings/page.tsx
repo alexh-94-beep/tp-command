@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Pencil, Plus } from 'lucide-react';
+import { Pencil, Plus, Upload } from 'lucide-react';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/shared/page-header';
 import { EmptyState } from '@/components/shared/empty-state';
@@ -75,12 +75,20 @@ export default async function BookingsPage({
         title="Buchungen"
         description="Mietverhältnisse aller Arten: Langzeit, Kurzzeit, Booking."
         actions={
-          <Link href="/bookings/new">
-            <Button>
-              <Plus className="h-4 w-4" />
-              Neue Buchung
-            </Button>
-          </Link>
+          <div className="flex gap-2">
+            <Link href="/bookings/flatfox">
+              <Button variant="secondary">
+                <Upload className="h-4 w-4" />
+                Aus Flatfox importieren
+              </Button>
+            </Link>
+            <Link href="/bookings/new">
+              <Button>
+                <Plus className="h-4 w-4" />
+                Neue Buchung
+              </Button>
+            </Link>
+          </div>
         }
       />
 
