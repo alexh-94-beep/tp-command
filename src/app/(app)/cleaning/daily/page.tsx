@@ -3,31 +3,12 @@ import { ArrowLeft } from 'lucide-react';
 import { requireRole } from '@/lib/auth/session';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/shared/page-header';
-import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { todayIso } from '@/lib/dates';
-import { cleaningStatusLabel } from '@/lib/labels';
-import type { CleaningStatus, CleaningType } from '@/types/aliases';
 import DailyToolbar from './daily-toolbar';
+import DailyBoard, { type DailyStaff, type DailyTask } from './daily-board';
 
 export const metadata = { title: 'Tagesplan Reinigung' };
-
-const typeLabel: Record<CleaningType, string> = {
-  checkout: 'Auszug',
-  pre_checkin: 'Pre-Checkin',
-  intermediate: 'Wiederkehrend',
-  special: 'Spezial',
-  deep_clean: 'Endreinigung',
-  inspection: 'Inspektion',
-  weekly_clean: 'Wöchentlich',
-  weekly_clean_linen: 'Wöchentlich + Wäsche',
-};
-
-const statusTone: Record<CleaningStatus, 'neutral' | 'warning' | 'info' | 'success'> = {
-  open: 'warning',
-  in_progress: 'info',
-  done: 'success',
-  quality_checked: 'success',
-};
 
 export default async function DailyPage({
   searchParams,
@@ -55,27 +36,21 @@ export default async function DailyPage({
       .order('scheduled_time', { ascending: true, nullsFirst: false }),
   ]);
 
-  type Task = NonNullable<typeof tasks>[number];
-  const tasksByStaff = new Map<string, Task[]>();
-  for (const t of tasks ?? []) {
-    const key = t.staff_id ?? 'unassigned';
-    const arr = tasksByStaff.get(key) ?? [];
-    arr.push(t);
-    tasksByStaff.set(key, arr);
-  }
+  const dailyStaff: DailyStaff[] = (staff ?? []).map((s) => ({
+    id: s.id,
+    full_name: s.full_name,
+    team_name: s.team_name ?? null,
+  }));
 
-  const columns: { key: string; title: string; tasks: Task[] }[] = [
-    ...(staff ?? []).map((s) => ({
-      key: s.id,
-      title: s.team_name ? `${s.full_name} · ${s.team_name}` : s.full_name,
-      tasks: tasksByStaff.get(s.id) ?? [],
-    })),
-    {
-      key: 'unassigned',
-      title: 'Nicht zugewiesen',
-      tasks: tasksByStaff.get('unassigned') ?? [],
-    },
-  ];
+  const dailyTasks: DailyTask[] = (tasks ?? []).map((t) => ({
+    id: t.id,
+    scheduled_time: t.scheduled_time,
+    type: t.type,
+    status: t.status,
+    staff_id: t.staff_id,
+    target: t.apartment?.number ?? t.external_apartment?.label ?? '–',
+    guest: t.stay?.guest_name ?? null,
+  }));
 
   return (
     <div className="space-y-6">
@@ -89,61 +64,17 @@ export default async function DailyPage({
 
       <PageHeader
         title="Tagesplan Reinigung"
-        description="Übersicht pro Reinigerin. Zuweisung erfolgt auf der Detailseite einer Aufgabe."
+        description="Übersicht pro Reinigerin. Ziehe Aufträge per Drag & Drop zwischen den Karten zum Zuweisen."
+        actions={
+          <Link href={`/cleaning/weekly?week=${date}`}>
+            <Button variant="secondary">Wochenplan</Button>
+          </Link>
+        }
       />
 
       <DailyToolbar date={date} />
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        {columns.map((col) => (
-          <div key={col.key} className="rounded-xl border border-slate-200 bg-white">
-            <div className="border-b border-slate-200 px-4 py-3">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold">{col.title}</h3>
-                <span className="text-xs text-slate-500">{col.tasks.length}</span>
-              </div>
-            </div>
-            <div className="space-y-1 p-3">
-              {col.tasks.length === 0 ? (
-                <div className="rounded-md border border-dashed border-slate-200 p-4 text-center text-xs text-slate-400">
-                  Keine Aufträge
-                </div>
-              ) : (
-                col.tasks.map((t) => (
-                  <Link
-                    key={t.id}
-                    href={`/cleaning/${t.id}`}
-                    className="block rounded-md border border-slate-100 p-2 text-sm hover:bg-slate-50"
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0 flex-1">
-                        <div className="font-medium">
-                          {t.apartment?.number ??
-                            t.external_apartment?.label ??
-                            '–'}
-                          {t.external_apartment && (
-                            <Badge tone="neutral" className="ml-2">
-                              extern
-                            </Badge>
-                          )}
-                        </div>
-                        <div className="text-xs text-slate-500">
-                          {typeLabel[t.type]}
-                          {t.scheduled_time ? ` · ${t.scheduled_time}` : ''}
-                          {t.stay?.guest_name ? ` · ${t.stay.guest_name}` : ''}
-                        </div>
-                      </div>
-                      <Badge tone={statusTone[t.status]} className="shrink-0">
-                        {cleaningStatusLabel[t.status]}
-                      </Badge>
-                    </div>
-                  </Link>
-                ))
-              )}
-            </div>
-          </div>
-        ))}
-      </div>
+      <DailyBoard initialStaff={dailyStaff} initialTasks={dailyTasks} />
     </div>
   );
 }

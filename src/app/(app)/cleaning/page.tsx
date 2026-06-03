@@ -122,6 +122,12 @@ export default async function CleaningPage({
                   Tagesplan
                 </Button>
               </Link>
+              <Link href="/cleaning/weekly">
+                <Button variant="secondary">
+                  <CalendarDays className="h-4 w-4" />
+                  Wochenplan
+                </Button>
+              </Link>
               <form action={triggerForm}>
                 <Button variant="secondary" type="submit">
                   <RefreshCw className="h-4 w-4" />
