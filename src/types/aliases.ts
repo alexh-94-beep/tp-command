@@ -48,6 +48,11 @@ export type Block = Tables['blocks']['Row'];
 // ── Channels (Direkt/Flatfox/Booking.com/…) ────────────────────────────
 export type Channel = Tables['channels']['Row'];
 
+// ── Pool-Reservationen (Booking.com etc., Phase 6) ────────────────────
+export type PendingReservation = Tables['pending_reservations']['Row'];
+export type PendingReservationInsert = Tables['pending_reservations']['Insert'];
+export type PendingReservationStatus = Enums['pending_reservation_status'];
+
 // ── Workflow (Phase 4) ─────────────────────────────────────────────────
 export type BookingTask = Tables['booking_tasks']['Row'];
 export type BookingTaskInsert = Tables['booking_tasks']['Insert'];

@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { Pencil, Plus, Upload } from 'lucide-react';
+import { Inbox, Pencil, Plus, Upload } from 'lucide-react';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/shared/page-header';
 import { EmptyState } from '@/components/shared/empty-state';
@@ -53,6 +53,12 @@ export default async function BookingsPage({
   const sp = await searchParams;
   const supabase = await createSupabaseServerClient();
 
+  // Pool-Reservationen ohne Wohnungs-Zuweisung — Banner oben anzeigen
+  const { count: pendingCount } = await supabase
+    .from('pending_reservations')
+    .select('*', { count: 'exact', head: true })
+    .eq('status', 'pending');
+
   let query = supabase
     .from('bookings')
     .select(
@@ -71,6 +77,20 @@ export default async function BookingsPage({
 
   return (
     <div className="space-y-6">
+      {pendingCount && pendingCount > 0 ? (
+        <Link
+          href="/bookings/pending"
+          className="flex items-center justify-between rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 hover:bg-amber-100"
+        >
+          <span className="inline-flex items-center gap-2">
+            <Inbox className="h-4 w-4" />
+            <strong>{pendingCount}</strong> offene Pool-Reservation(en) warten auf
+            Wohnungs-Zuweisung
+          </span>
+          <span className="text-xs">Jetzt ansehen →</span>
+        </Link>
+      ) : null}
+
       <PageHeader
         title="Buchungen"
         description="Mietverhältnisse aller Arten: Langzeit, Kurzzeit, Booking."
