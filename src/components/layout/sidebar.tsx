@@ -26,6 +26,7 @@ interface ReadyNavItem {
     | '/calendar'
     | '/bookings'
     | '/tasks'
+    | '/cleaning'
     | '/tenants'
     | '/settings';
   icon: IconType;
@@ -38,6 +39,7 @@ const READY: ReadyNavItem[] = [
   { label: 'Belegung', href: '/calendar', icon: Calendar },
   { label: 'Buchungen', href: '/bookings', icon: BookOpen },
   { label: 'Aufgaben', href: '/tasks', icon: ListChecks, roles: ['admin', 'office'] },
+  { label: 'Reinigung', href: '/cleaning', icon: Sparkles },
   { label: 'Mieter & Gäste', href: '/tenants', icon: Users },
   { label: 'Einstellungen', href: '/settings', icon: Settings, roles: ['admin'] },
 ];
@@ -48,7 +50,6 @@ const READY: ReadyNavItem[] = [
  * gebaut sind.
  */
 const UPCOMING: { label: string; icon: IconType; roles?: AppRole[] }[] = [
-  { label: 'Reinigung', icon: Sparkles },
   { label: 'Zahlungen', icon: CreditCard, roles: ['admin', 'office', 'management'] },
 ];
 

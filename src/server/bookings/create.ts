@@ -7,6 +7,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { requireRole } from '@/lib/auth/session';
 import { checkAvailability, type AvailabilityConflict } from '@/services/availability/check';
 import { instantiateBookingTasks } from '@/services/workflow/instantiate';
+import { ensureCheckoutCleaningForBooking } from '@/services/cleaning/generate';
 
 const OPEN_END = '9999-12-31';
 
@@ -175,8 +176,16 @@ export async function createBooking(formData: FormData): Promise<CreateBookingRe
   // Workflow-Aufgaben aus den Templates instantiieren (Phase 4)
   await instantiateBookingTasks(supabase, booking.id);
 
+  // Reinigungs-Auftrag fuer Booking-Typ direkt mit-erzeugen (Phase 5):
+  // Bei Lang-/Kurzzeit folgt der Auftrag erst, wenn die Wohnungsabnahme
+  // geplant/erledigt wird — Datum ist sonst undefiniert (open-end).
+  if (v.rental_type === 'booking') {
+    await ensureCheckoutCleaningForBooking(supabase, booking.id);
+  }
+
   revalidatePath('/bookings');
   revalidatePath('/tasks');
+  revalidatePath('/cleaning');
   revalidatePath('/dashboard');
   revalidatePath(`/apartments/${v.apartment_id}`);
 

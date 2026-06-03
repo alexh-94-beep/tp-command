@@ -63,5 +63,12 @@ export type TaskAssigneeRole = Enums['task_assignee_role'];
 // ── Auth / Rollen ──────────────────────────────────────────────────────
 export type UserRole = Enums['user_role'];
 
-// ── Reinigung (für Labels schon jetzt benoetigt, Phase 5 baut auf) ─────
+// ── Reinigung (Phase 5) ────────────────────────────────────────────────
+export type CleaningTask = Tables['cleaning_tasks']['Row'];
+export type CleaningStaff = Tables['cleaning_staff']['Row'];
+export type CleaningPhoto = Tables['cleaning_photos']['Row'];
+
 export type CleaningStatus = Enums['cleaning_status'];
+export type CleaningType = Enums['cleaning_type'];
+export type CleaningPriority = Enums['cleaning_priority'];
+export type AccessMethod = Enums['access_method'];
