@@ -2,7 +2,9 @@
 
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
+import { FileDown } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/cn';
 import { applySpeedFactor } from '@/services/cleaning/duration';
 import { moveCleaningTask } from '@/server/cleaning/staff';
@@ -60,6 +62,7 @@ interface Row {
   speedFactor: number;
   memberIds: string[];
   primaryStaffId: string | null;
+  pdfStaffIds: string[];
 }
 
 function formatDuration(minutes: number | null): string {
@@ -79,10 +82,12 @@ function endTime(start: string | null, durMin: number | null): string | null {
 }
 
 export default function WeeklyBoard({
+  weekStart,
   days,
   staff,
   initialTasks,
 }: {
+  weekStart: string;
   days: string[];
   staff: WeeklyStaff[];
   initialTasks: WeeklyTask[];
@@ -110,6 +115,7 @@ export default function WeeklyBoard({
         speedFactor: s.speed_factor,
         memberIds: members.map((m) => m.id),
         primaryStaffId: members[0].id,
+        pdfStaffIds: members.map((m) => m.id),
       });
     } else {
       rows.push({
@@ -121,6 +127,7 @@ export default function WeeklyBoard({
         speedFactor: s.speed_factor,
         memberIds: [s.id],
         primaryStaffId: s.id,
+        pdfStaffIds: [s.id],
       });
     }
   }
@@ -133,6 +140,7 @@ export default function WeeklyBoard({
     speedFactor: 1,
     memberIds: [],
     primaryStaffId: null,
+    pdfStaffIds: [],
   });
 
   const today = new Date().toISOString().slice(0, 10);
@@ -237,6 +245,23 @@ export default function WeeklyBoard({
                     <div className="text-[11px] font-normal text-slate-500">
                       {formatDuration(weekTotal)}
                     </div>
+                    {row.pdfStaffIds.length > 0 && (
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        {row.pdfStaffIds.map((sid) => (
+                          <a
+                            key={sid}
+                            href={`/api/cleaning/daily-pdf?date=${weekStart}&days=7&staff_id=${sid}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            title="Wochenplan als PDF"
+                          >
+                            <Button variant="secondary" size="sm">
+                              <FileDown className="h-3 w-3" />
+                            </Button>
+                          </a>
+                        ))}
+                      </div>
+                    )}
                   </td>
                   {days.map((d, i) => {
                     const cellTasks = tasksFor(row, d);

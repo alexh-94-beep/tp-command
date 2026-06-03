@@ -2,8 +2,9 @@
 
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
-import { GripVertical } from 'lucide-react';
+import { FileDown, GripVertical } from 'lucide-react';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/cn';
 import { assignTaskToStaff } from '@/server/cleaning/staff';
@@ -54,9 +55,11 @@ interface StaffGroup {
 const UNASSIGNED = 'unassigned';
 
 export default function DailyBoard({
+  date,
   initialStaff,
   initialTasks,
 }: {
+  date: string;
   initialStaff: DailyStaff[];
   initialTasks: DailyTask[];
 }) {
@@ -184,13 +187,33 @@ export default function DailyBoard({
               }}
             >
               <CardHeader>
-                <CardTitle>
-                  {g.label}{' '}
-                  {isTeam && <span className="text-xs font-normal text-blue-600">Team</span>}{' '}
-                  <span className="text-xs font-normal text-slate-500">
-                    ({myTasks.length} Aufträge)
-                  </span>
-                </CardTitle>
+                <div className="flex items-center justify-between gap-2">
+                  <CardTitle>
+                    {g.label}{' '}
+                    {isTeam && (
+                      <span className="text-xs font-normal text-blue-600">Team</span>
+                    )}{' '}
+                    <span className="text-xs font-normal text-slate-500">
+                      ({myTasks.length} Aufträge)
+                    </span>
+                  </CardTitle>
+                  <div className="flex gap-1">
+                    {g.members.map((m) => (
+                      <a
+                        key={m.id}
+                        href={`/api/cleaning/daily-pdf?date=${date}&staff_id=${m.id}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        title={`PDF für ${m.full_name}`}
+                      >
+                        <Button variant="secondary" size="sm">
+                          <FileDown className="h-4 w-4" />
+                          {isTeam ? m.full_name : 'PDF'}
+                        </Button>
+                      </a>
+                    ))}
+                  </div>
+                </div>
               </CardHeader>
               <CardBody className="min-h-[120px] space-y-2">
                 {myTasks.length === 0 ? (

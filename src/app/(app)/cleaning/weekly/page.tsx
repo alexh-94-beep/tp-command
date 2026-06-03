@@ -82,7 +82,12 @@ export default async function WeeklyPage({
 
       <WeeklyToolbar weekStart={weekStart} />
 
-      <WeeklyBoard days={days} staff={weeklyStaff} initialTasks={weeklyTasks} />
+      <WeeklyBoard
+        weekStart={weekStart}
+        days={days}
+        staff={weeklyStaff}
+        initialTasks={weeklyTasks}
+      />
     </div>
   );
 }

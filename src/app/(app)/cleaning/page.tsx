@@ -13,6 +13,7 @@ import type {
   CleaningType,
 } from '@/types/aliases';
 import CleaningToolbar from './cleaning-toolbar';
+import DamageReportButton from './damage-report-button';
 
 export const metadata = { title: 'Reinigung' };
 
@@ -128,6 +129,7 @@ export default async function CleaningPage({
                   Wochenplan
                 </Button>
               </Link>
+              <DamageReportButton />
               <form action={triggerForm}>
                 <Button variant="secondary" type="submit">
                   <RefreshCw className="h-4 w-4" />

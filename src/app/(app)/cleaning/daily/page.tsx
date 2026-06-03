@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, FileDown } from 'lucide-react';
 import { requireRole } from '@/lib/auth/session';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/shared/page-header';
@@ -66,15 +66,27 @@ export default async function DailyPage({
         title="Tagesplan Reinigung"
         description="Übersicht pro Reinigerin. Ziehe Aufträge per Drag & Drop zwischen den Karten zum Zuweisen."
         actions={
-          <Link href={`/cleaning/weekly?week=${date}`}>
-            <Button variant="secondary">Wochenplan</Button>
-          </Link>
+          <div className="flex gap-2">
+            <Link href={`/cleaning/weekly?week=${date}`}>
+              <Button variant="secondary">Wochenplan</Button>
+            </Link>
+            <a
+              href={`/api/cleaning/daily-pdf?date=${date}`}
+              target="_blank"
+              rel="noreferrer"
+            >
+              <Button variant="secondary">
+                <FileDown className="h-4 w-4" />
+                Alle als PDF
+              </Button>
+            </a>
+          </div>
         }
       />
 
       <DailyToolbar date={date} />
 
-      <DailyBoard initialStaff={dailyStaff} initialTasks={dailyTasks} />
+      <DailyBoard date={date} initialStaff={dailyStaff} initialTasks={dailyTasks} />
     </div>
   );
 }

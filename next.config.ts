@@ -8,9 +8,9 @@ const nextConfig: NextConfig = {
   // typedRoutes ist in Next 15+/16 stabil und top-level (nicht mehr experimental).
   typedRoutes: true,
   // serverExternalPackages (vormals experimental.serverComponentsExternalPackages):
-  // schwere, rein serverseitige Libraries hier eintragen, sobald die Phasen
-  // sie einfuehren (z. B. 'pdf-lib', 'xlsx' fuer PDF-/Excel-Routen).
-  serverExternalPackages: [],
+  // schwere, rein serverseitige Libraries werden hier gelistet damit Next sie
+  // nicht in den Edge/Client-Bundle ziehen will.
+  serverExternalPackages: ['pdf-lib'],
   images: {
     remotePatterns: [{ protocol: 'https', hostname: '*.supabase.co' }],
   },
