@@ -71,6 +71,31 @@ export function compareSuggestions(a: ApartmentSuggestion, b: ApartmentSuggestio
   return a.total_gap - b.total_gap;
 }
 
+/**
+ * Parst einen freitext-Gastnamen in first_name / last_name.
+ *  - leer / nur whitespace → generischer Pool-Gast
+ *  - genau ein Wort       → ("Müller", "(Ohne Nachname)")
+ *  - mehrere Wörter       → letztes Wort = Nachname, Rest = Vorname
+ *
+ * Wir wollen kein last_name="" in der DB landen, weil tenant.last_name
+ * NOT NULL ist und leere Strings im UI als " " gerendert werden.
+ */
+export function parseGuestName(name: string | null | undefined): {
+  firstName: string;
+  lastName: string;
+} {
+  const trimmed = (name ?? '').trim();
+  if (!trimmed) return { firstName: 'Pool', lastName: '(Booking-Gast)' };
+  const parts = trimmed.split(/\s+/);
+  if (parts.length === 1) {
+    return { firstName: parts[0], lastName: '(Ohne Nachname)' };
+  }
+  return {
+    firstName: parts.slice(0, -1).join(' '),
+    lastName: parts[parts.length - 1],
+  };
+}
+
 function addDaysIso(iso: string, n: number): string {
   const d = new Date(iso);
   d.setDate(d.getDate() + n);

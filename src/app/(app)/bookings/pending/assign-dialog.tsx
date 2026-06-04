@@ -70,6 +70,14 @@ export function AssignDialog({
         setError(r.error ?? 'Fehler beim Zuweisen');
         return;
       }
+      // Non-fatal warning (Workflow/Reinigung konnten nicht angelegt werden)
+      // → Buchung steht, wir zeigen die Warnung aber als Alert vor dem Redirect.
+      if (r.warning) {
+        alert(
+          `Buchung wurde angelegt, aber: ${r.warning}\n\n` +
+            'Bitte Workflow-Aufgaben bzw. Reinigung in der Detail-Ansicht nachziehen.',
+        );
+      }
       onAssigned(r.bookingId!);
     });
   }

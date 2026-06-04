@@ -6,6 +6,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { requireRole, getCurrentUser } from '@/lib/auth/session';
 import {
   suggestApartmentsForReservation,
+  parseGuestName,
   type SuggestionsResult,
 } from '@/services/channels/auto-assign';
 import { checkAvailability } from '@/services/availability/check';
@@ -122,7 +123,7 @@ const assignSchema = z.object({
 
 export async function assignReservation(
   formData: FormData,
-): Promise<{ ok: boolean; error?: string; bookingId?: string }> {
+): Promise<{ ok: boolean; error?: string; warning?: string; bookingId?: string }> {
   await requireRole(['admin', 'office']);
   const user = await getCurrentUser();
 
@@ -136,48 +137,77 @@ export async function assignReservation(
     parsed.data;
   const supabase = await createSupabaseServerClient();
 
-  const { data: reservation } = await supabase
+  // Step 1: Atomarer Claim. Statusübergang pending → assigned läuft DIREKT
+  // hier per conditional update. Wenn 0 Zeilen betroffen sind, hat jemand
+  // anderes die Reservation parallel zugewiesen oder storniert.
+  // Wir setzen den booking_id erst später, wenn die Buchung wirklich steht.
+  const nowIso = new Date().toISOString();
+  const { data: claimed, error: claimErr } = await supabase
     .from('pending_reservations')
-    .select(
-      'id, start_date, end_date, summary, description, channel_id, status, external_uid',
-    )
+    .update({
+      status: 'assigned',
+      assigned_by: user?.id ?? null,
+      assigned_at: nowIso,
+    })
     .eq('id', reservation_id)
-    .single();
-  if (!reservation) return { ok: false, error: 'Reservation nicht gefunden' };
-  if (reservation.status !== 'pending') {
-    return { ok: false, error: `Status ist bereits ${reservation.status}` };
+    .eq('status', 'pending')
+    .select(
+      'id, start_date, end_date, summary, description, channel_id, external_uid',
+    )
+    .maybeSingle();
+
+  if (claimErr) return { ok: false, error: claimErr.message };
+  if (!claimed) {
+    return {
+      ok: false,
+      error: 'Reservation wurde bereits zugewiesen oder storniert. Bitte Liste neu laden.',
+    };
   }
 
+  const reservation = claimed;
+
+  // Rollback-Helfer: setzt die Reservation zurück auf "pending"
+  // wenn irgendein nachgelagerter Schritt fehlschlaegt.
+  const revertClaim = async (reason: string) => {
+    await supabase
+      .from('pending_reservations')
+      .update({ status: 'pending', assigned_by: null, assigned_at: null })
+      .eq('id', reservation_id);
+    return { ok: false as const, error: reason };
+  };
+
+  // Step 2: Availability-Vorpruefung (das EXCLUDE-Constraint auf bookings
+  // bleibt der eigentliche Schutz, aber wir wollen einen sprechenden Fehler).
   const av = await checkAvailability(supabase, {
     apartmentId: apartment_id,
     startDate: reservation.start_date,
     endDate: reservation.end_date,
   });
   if (!av.available) {
-    return {
-      ok: false,
-      error: `Wohnung ist nicht frei: ${av.conflicts.map((c) => c.label).join(', ')}`,
-    };
+    return revertClaim(
+      `Wohnung ist nicht frei: ${av.conflicts.map((c) => c.label).join(', ')}`,
+    );
   }
 
-  // Tenant: Booking-Gast mit Namen (falls eingegeben) oder generisches Pool-Profil
+  // Step 3: Tenant erstellen (oder bestehenden Pool-Tenant wiederverwenden)
   let tenantId: string;
   if (guest_name && guest_name.trim()) {
-    const parts = guest_name.trim().split(/\s+/);
-    const firstName = parts.slice(0, -1).join(' ') || parts[0];
-    const lastName = parts.length > 1 ? parts[parts.length - 1] : '';
+    const { firstName, lastName } = parseGuestName(guest_name);
     const { data: created, error } = await supabase
       .from('tenants')
       .insert({
         tenant_kind: 'guest',
         first_name: firstName,
-        last_name: lastName || '(Booking-Gast)',
+        last_name: lastName,
         source: 'booking_com',
       })
       .select('id')
       .single();
-    if (error || !created)
-      return { ok: false, error: `Gast-Profil konnte nicht angelegt werden: ${error?.message}` };
+    if (error || !created) {
+      return revertClaim(
+        `Gast-Profil konnte nicht angelegt werden: ${error?.message ?? 'unbekannt'}`,
+      );
+    }
     tenantId = created.id;
   } else {
     const channelTenantEmail = `guests+${reservation.channel_id}@tp-command.local`;
@@ -200,12 +230,16 @@ export async function assignReservation(
         })
         .select('id')
         .single();
-      if (error || !created)
-        return { ok: false, error: 'Tenant konnte nicht angelegt werden' };
+      if (error || !created) {
+        return revertClaim(`Tenant konnte nicht angelegt werden: ${error?.message ?? ''}`);
+      }
       tenantId = created.id;
     }
   }
 
+  // Step 4: Buchung anlegen. Wenn der DB-Exclude-Constraint zuschlaegt
+  // (echte Race mit einer parallelen Buchung), gibt es hier einen Fehler
+  // und wir rollen den Claim zurueck.
   const { data: booking, error: bookingErr } = await supabase
     .from('bookings')
     .insert({
@@ -227,20 +261,38 @@ export async function assignReservation(
     })
     .select('id')
     .single();
-  if (bookingErr) return { ok: false, error: bookingErr.message };
+  if (bookingErr || !booking) {
+    return revertClaim(
+      `Buchung konnte nicht angelegt werden: ${bookingErr?.message ?? 'unbekannt'}`,
+    );
+  }
 
+  // Step 5: pending_reservation mit der Booking-ID verknuepfen.
   await supabase
     .from('pending_reservations')
-    .update({
-      status: 'assigned',
-      assigned_booking_id: booking.id,
-      assigned_by: user?.id ?? null,
-      assigned_at: new Date().toISOString(),
-    })
+    .update({ assigned_booking_id: booking.id })
     .eq('id', reservation_id);
 
-  await instantiateBookingTasks(supabase, booking.id);
-  await ensureCheckoutCleaningForBooking(supabase, booking.id);
+  // Step 6: Workflow-Aufgaben + Checkout-Reinigung. Fehler hier sind
+  // nicht-kritisch — die Buchung steht. Wir geben aber eine Warnung
+  // zurueck, damit Office das nachziehen kann.
+  let warning: string | undefined;
+  try {
+    await instantiateBookingTasks(supabase, booking.id);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error('[assignReservation] instantiateBookingTasks failed:', msg);
+    warning = `Workflow-Aufgaben konnten nicht erzeugt werden: ${msg}`;
+  }
+  try {
+    await ensureCheckoutCleaningForBooking(supabase, booking.id);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error('[assignReservation] ensureCheckoutCleaning failed:', msg);
+    warning = warning
+      ? `${warning} | Checkout-Reinigung konnte nicht angelegt werden: ${msg}`
+      : `Checkout-Reinigung konnte nicht angelegt werden: ${msg}`;
+  }
 
   revalidatePath('/bookings/pending');
   revalidatePath('/bookings');
@@ -248,7 +300,7 @@ export async function assignReservation(
   revalidatePath('/cleaning');
   revalidatePath(`/apartments/${apartment_id}`);
 
-  return { ok: true, bookingId: booking.id };
+  return { ok: true, bookingId: booking.id, warning };
 }
 
 export async function cancelPendingReservation(

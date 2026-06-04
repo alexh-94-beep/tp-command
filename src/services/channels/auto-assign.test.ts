@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   compareSuggestions,
   hasSufficientCleaningBuffer,
+  parseGuestName,
   type ApartmentSuggestion,
 } from './auto-assign';
 
@@ -92,5 +93,54 @@ describe('compareSuggestions', () => {
     ];
     items.sort(compareSuggestions);
     expect(items.map((i) => i.number)).toEqual(['pool-default', 'high-prio', 'unavail']);
+  });
+});
+
+describe('parseGuestName', () => {
+  it('leer / nur whitespace -> generischer Pool-Gast', () => {
+    expect(parseGuestName('')).toEqual({ firstName: 'Pool', lastName: '(Booking-Gast)' });
+    expect(parseGuestName('   ')).toEqual({ firstName: 'Pool', lastName: '(Booking-Gast)' });
+    expect(parseGuestName(null)).toEqual({ firstName: 'Pool', lastName: '(Booking-Gast)' });
+    expect(parseGuestName(undefined)).toEqual({ firstName: 'Pool', lastName: '(Booking-Gast)' });
+  });
+
+  it('einzelnes Wort -> last_name Platzhalter, damit NOT NULL nicht leer ist', () => {
+    expect(parseGuestName('Müller')).toEqual({
+      firstName: 'Müller',
+      lastName: '(Ohne Nachname)',
+    });
+    expect(parseGuestName('Cher')).toEqual({
+      firstName: 'Cher',
+      lastName: '(Ohne Nachname)',
+    });
+  });
+
+  it('zwei Woerter -> Vor- und Nachname', () => {
+    expect(parseGuestName('Anna Müller')).toEqual({
+      firstName: 'Anna',
+      lastName: 'Müller',
+    });
+  });
+
+  it('mehrere Vornamen -> letztes Wort = Nachname, Rest = first_name', () => {
+    expect(parseGuestName('Anna Maria Schmidt')).toEqual({
+      firstName: 'Anna Maria',
+      lastName: 'Schmidt',
+    });
+    expect(parseGuestName('Jean Pierre de la Mer')).toEqual({
+      firstName: 'Jean Pierre de la',
+      lastName: 'Mer',
+    });
+  });
+
+  it('Whitespace wird konsequent normalisiert', () => {
+    expect(parseGuestName('  Anna   Müller  ')).toEqual({
+      firstName: 'Anna',
+      lastName: 'Müller',
+    });
+    expect(parseGuestName('Anna\tMüller')).toEqual({
+      firstName: 'Anna',
+      lastName: 'Müller',
+    });
   });
 });
