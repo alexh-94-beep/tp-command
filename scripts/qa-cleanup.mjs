@@ -31,9 +31,9 @@ async function rest(path, opts = {}) {
   return txt ? JSON.parse(txt) : null;
 }
 
-// Test-Pending-Reservationen (TEST-QA-*)
+// Test-Pending-Reservationen (TEST-QA-*, QA-DASH-*, RACE-*)
 const pendings = await rest(
-  `pending_reservations?select=id,external_uid,assigned_booking_id&external_uid=like.TEST-QA-*`,
+  `pending_reservations?select=id,external_uid,assigned_booking_id&or=(external_uid.like.TEST-QA-*,external_uid.like.QA-DASH-*,external_uid.like.RACE-*)`,
 );
 console.log('Pending:', pendings.length);
 for (const p of pendings) {
@@ -77,6 +77,54 @@ for (const p of pendings) {
     headers: { Prefer: 'return=minimal' },
   });
   console.log('  removed pending', p.external_uid);
+}
+
+// Test-Bookings ohne Pending-Anker (qa:dash:*)
+const orphanBookings = await rest(
+  `bookings?select=id,tenant_id,external_reference&external_reference=like.qa:dash:*`,
+);
+for (const b of orphanBookings) {
+  const tasks = await rest(`booking_tasks?booking_id=eq.${b.id}&select=id`);
+  for (const t of tasks)
+    await rest(`booking_tasks?id=eq.${t.id}`, {
+      method: 'DELETE',
+      headers: { Prefer: 'return=minimal' },
+    });
+  const cleans = await rest(`cleaning_tasks?booking_id=eq.${b.id}&select=id`);
+  for (const c of cleans)
+    await rest(`cleaning_tasks?id=eq.${c.id}`, {
+      method: 'DELETE',
+      headers: { Prefer: 'return=minimal' },
+    });
+  await rest(`bookings?id=eq.${b.id}`, {
+    method: 'DELETE',
+    headers: { Prefer: 'return=minimal' },
+  });
+  console.log('  removed booking', b.external_reference);
+}
+
+// Verwaiste Cleaning-Tasks (notes=qa:dash:*)
+const orphanCleans = await rest(
+  `cleaning_tasks?select=id,notes&notes=like.qa:dash:*`,
+);
+for (const c of orphanCleans) {
+  await rest(`cleaning_tasks?id=eq.${c.id}`, {
+    method: 'DELETE',
+    headers: { Prefer: 'return=minimal' },
+  });
+  console.log('  removed cleaning', c.notes);
+}
+
+// QA-Tenants
+for (const email of ['qa-dashboard@tp-command.local']) {
+  const ts = await rest(`tenants?select=id&email=eq.${email}`);
+  for (const t of ts) {
+    await rest(`tenants?id=eq.${t.id}`, {
+      method: 'DELETE',
+      headers: { Prefer: 'return=minimal' },
+    });
+    console.log('  removed tenant', email);
+  }
 }
 
 // Apartments zurücksetzen (alle mit allowed_rental_types containing booking, die
