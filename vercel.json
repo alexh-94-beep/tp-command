@@ -4,6 +4,14 @@
     {
       "path": "/api/cron/channels",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/mark-overdue-payments",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/generate-monthly-rent",
+      "schedule": "5 6 * * *"
     }
   ]
 }

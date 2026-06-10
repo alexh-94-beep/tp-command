@@ -9,7 +9,9 @@ import {
   ListChecks,
   Gauge,
   AlertTriangle,
+  CreditCard,
 } from 'lucide-react';
+import { formatMoney } from '@/lib/money';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/shared/page-header';
 import { Badge } from '@/components/ui/badge';
@@ -91,6 +93,30 @@ export default async function DashboardPage() {
             value={m.tasks.overdue}
             tone={m.tasks.overdue > 0 ? 'danger' : 'neutral'}
             description="Fällig vor heute, nicht erledigt"
+          />
+          <StatCard
+            href={{ pathname: '/payments', query: { status: 'overdue' } }}
+            icon={<AlertTriangle className="h-5 w-5" />}
+            label="Zahlungen überfällig"
+            value={m.payments.overdueCount}
+            tone={m.payments.overdueCount > 0 ? 'danger' : 'neutral'}
+            description={
+              m.payments.overdueCount > 0
+                ? `${formatMoney(m.payments.overdueSum)} ausstehend`
+                : 'Keine überfälligen Zahlungen'
+            }
+          />
+          <StatCard
+            href={{ pathname: '/payments', query: { status: 'pending,overdue' } }}
+            icon={<CreditCard className="h-5 w-5" />}
+            label="Zahlungen offen gesamt"
+            value={m.payments.openCount}
+            tone={m.payments.openCount > 0 ? 'warning' : 'neutral'}
+            description={
+              m.payments.openCount > 0
+                ? `${formatMoney(m.payments.openSum)} ausstehend (inkl. überfällig)`
+                : 'Alle Zahlungen erledigt'
+            }
           />
         </div>
       </section>

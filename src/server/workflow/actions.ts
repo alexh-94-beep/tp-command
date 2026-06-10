@@ -8,7 +8,7 @@ import {
   instantiateBookingTasks,
   recomputeBookingTaskDueDates,
 } from '@/services/workflow/instantiate';
-import type { BookingTaskStatus, WorkflowKind } from '@/types/aliases';
+import type { BookingTaskStatus } from '@/types/aliases';
 
 type Result = { ok: boolean; error?: string };
 
@@ -256,5 +256,8 @@ export async function regenerateBookingTasks(
   return { ok: true, created: r.created };
 }
 
-// Re-exports fuer convenience (Action-Datei haelt 'use server'-Boundary)
-export type { WorkflowKind };
+// (Type re-export entfernt — in 'use server'-Files werden Type-Re-Exports
+// inkonsistent vom Next-Bundler behandelt und koennen Runtime-Fehler
+// 'WorkflowKind is not defined' verursachen, wenn die Action-Module-Kette
+// von einer fremden Server-Action getriggert wird. Pages importieren den
+// Type direkt aus @/types/aliases.)

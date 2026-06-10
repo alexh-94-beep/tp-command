@@ -77,3 +77,11 @@ export type CleaningStatus = Enums['cleaning_status'];
 export type CleaningType = Enums['cleaning_type'];
 export type CleaningPriority = Enums['cleaning_priority'];
 export type AccessMethod = Enums['access_method'];
+
+// ── Zahlungen (Phase 8) ────────────────────────────────────────────────
+// BookingPaymentStatus ist oben bei Bookings bereits exportiert.
+export type Payment = Tables['payments']['Row'];
+export type PaymentInsert = Tables['payments']['Insert'];
+export type PaymentType = Enums['payment_type'];
+export type PaymentStatus = Enums['payment_status'];
+export type PaymentMethod = Enums['payment_method'];

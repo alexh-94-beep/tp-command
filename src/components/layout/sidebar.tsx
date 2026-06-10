@@ -27,6 +27,7 @@ interface ReadyNavItem {
     | '/bookings'
     | '/tasks'
     | '/cleaning'
+    | '/payments'
     | '/tenants'
     | '/settings';
   icon: IconType;
@@ -40,6 +41,12 @@ const READY: ReadyNavItem[] = [
   { label: 'Buchungen', href: '/bookings', icon: BookOpen },
   { label: 'Aufgaben', href: '/tasks', icon: ListChecks, roles: ['admin', 'office'] },
   { label: 'Reinigung', href: '/cleaning', icon: Sparkles },
+  {
+    label: 'Zahlungen',
+    href: '/payments',
+    icon: CreditCard,
+    roles: ['admin', 'office', 'management'],
+  },
   { label: 'Mieter & Gäste', href: '/tenants', icon: Users },
   { label: 'Einstellungen', href: '/settings', icon: Settings, roles: ['admin'] },
 ];
@@ -49,9 +56,7 @@ const READY: ReadyNavItem[] = [
  * und werden pro Phase in das READY-Array überführt, sobald die Routen
  * gebaut sind.
  */
-const UPCOMING: { label: string; icon: IconType; roles?: AppRole[] }[] = [
-  { label: 'Zahlungen', icon: CreditCard, roles: ['admin', 'office', 'management'] },
-];
+const UPCOMING: { label: string; icon: IconType; roles?: AppRole[] }[] = [];
 
 export function Sidebar({ role }: { role: AppRole }) {
   const pathname = usePathname();
@@ -71,7 +76,7 @@ export function Sidebar({ role }: { role: AppRole }) {
           return (
             <Link
               key={href}
-              href={href}
+              href={{ pathname: href }}
               className={cn(
                 'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition',
                 active ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100',

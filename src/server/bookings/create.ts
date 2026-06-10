@@ -8,6 +8,7 @@ import { requireRole } from '@/lib/auth/session';
 import { checkAvailability, type AvailabilityConflict } from '@/services/availability/check';
 import { instantiateBookingTasks } from '@/services/workflow/instantiate';
 import { ensureCheckoutCleaningForBooking } from '@/services/cleaning/generate';
+import { generatePaymentsForBooking } from '@/services/payments/generate';
 
 const OPEN_END = '9999-12-31';
 
@@ -183,9 +184,19 @@ export async function createBooking(formData: FormData): Promise<CreateBookingRe
     await ensureCheckoutCleaningForBooking(supabase, booking.id);
   }
 
+  // Plan-Zahlungen erzeugen (Phase 8) — Depot + Erst-Miete bei long_term,
+  // Pauschale bei short_term, Booking-Payout-Erwartung bei booking.
+  // Best-effort: Fehler hier blockieren die Buchung nicht.
+  try {
+    await generatePaymentsForBooking(supabase, booking.id);
+  } catch (e) {
+    console.error('[createBooking] generatePaymentsForBooking failed:', e);
+  }
+
   revalidatePath('/bookings');
   revalidatePath('/tasks');
   revalidatePath('/cleaning');
+  revalidatePath('/payments');
   revalidatePath('/dashboard');
   revalidatePath(`/apartments/${v.apartment_id}`);
 

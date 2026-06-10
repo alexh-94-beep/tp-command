@@ -13,6 +13,7 @@ import {
 } from '@/lib/channels/flatfox/client';
 import { checkAvailability } from '@/services/availability/check';
 import { instantiateBookingTasks } from '@/services/workflow/instantiate';
+import { generatePaymentsForBooking } from '@/services/payments/generate';
 import {
   buildApartmentIndex,
   listingToApartmentNumber,
@@ -376,9 +377,17 @@ export async function importFlatfoxApplication(
   // Workflow-Aufgaben (Langzeit Einzug + Auszug) instantiieren — Phase 4
   await instantiateBookingTasks(supabase, booking.id);
 
+  // Plan-Zahlungen erzeugen — Phase 8 (Depot + Erst-Miete fuer Langzeit)
+  try {
+    await generatePaymentsForBooking(supabase, booking.id);
+  } catch (e) {
+    console.error('[flatfox.takeApplication] generatePaymentsForBooking failed:', e);
+  }
+
   revalidatePath('/bookings');
   revalidatePath('/bookings/flatfox');
   revalidatePath('/tasks');
+  revalidatePath('/payments');
   revalidatePath(`/apartments/${apartment.id}`);
 
   return { ok: true, bookingId: booking.id, documentsStored: docsStored };

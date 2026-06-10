@@ -12,6 +12,7 @@ import {
 import { checkAvailability } from '@/services/availability/check';
 import { instantiateBookingTasks } from '@/services/workflow/instantiate';
 import { ensureCheckoutCleaningForBooking } from '@/services/cleaning/generate';
+import { generatePaymentsForBooking } from '@/services/payments/generate';
 
 // ── Manuelle Eingabe einer Pool-Reservation ──────────────────────────
 
@@ -293,11 +294,21 @@ export async function assignReservation(
       ? `${warning} | Checkout-Reinigung konnte nicht angelegt werden: ${msg}`
       : `Checkout-Reinigung konnte nicht angelegt werden: ${msg}`;
   }
+  try {
+    await generatePaymentsForBooking(supabase, booking.id);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    console.error('[assignReservation] generatePaymentsForBooking failed:', msg);
+    warning = warning
+      ? `${warning} | Plan-Zahlungen konnten nicht erzeugt werden: ${msg}`
+      : `Plan-Zahlungen konnten nicht erzeugt werden: ${msg}`;
+  }
 
   revalidatePath('/bookings/pending');
   revalidatePath('/bookings');
   revalidatePath('/calendar');
   revalidatePath('/cleaning');
+  revalidatePath('/payments');
   revalidatePath(`/apartments/${apartment_id}`);
 
   return { ok: true, bookingId: booking.id, warning };

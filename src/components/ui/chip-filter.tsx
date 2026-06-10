@@ -10,7 +10,12 @@ import { cn } from '@/lib/cn';
  * URL-State: komma-separierte Werte (z.B. ?status=available,occupied).
  * Server-Pages parsen via `.split(',')` und nutzen `.in()` statt `.eq()`.
  */
-export type AllowedFilterPath = '/apartments' | '/bookings' | '/calendar' | '/tenants';
+export type AllowedFilterPath =
+  | '/apartments'
+  | '/bookings'
+  | '/calendar'
+  | '/tenants'
+  | '/payments';
 
 interface ChipFilterProps {
   label: string;

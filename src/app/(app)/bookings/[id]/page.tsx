@@ -18,6 +18,9 @@ import type {
 import BookingTasksSection, {
   type BookingTaskRow,
 } from './booking-tasks-section';
+import BookingPaymentsSection, {
+  type PaymentRow,
+} from './booking-payments-section';
 
 export const metadata = { title: 'Buchung' };
 
@@ -123,6 +126,24 @@ export default async function BookingDetailPage({
     completed_by_name: r.completed_by_user?.full_name ?? null,
   }));
 
+  // Zahlungen laden (Phase 8)
+  const { data: rawPayments } = await supabase
+    .from('payments')
+    .select('id, type, amount, due_date, paid_date, status, method, reference, notes')
+    .eq('booking_id', b.id)
+    .order('due_date', { ascending: true });
+  const payments: PaymentRow[] = (rawPayments ?? []).map((p) => ({
+    id: p.id,
+    type: p.type,
+    amount: Number(p.amount),
+    due_date: p.due_date,
+    paid_date: p.paid_date,
+    status: p.status,
+    method: p.method,
+    reference: p.reference,
+    notes: p.notes,
+  }));
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2 text-sm">
@@ -219,6 +240,8 @@ export default async function BookingDetailPage({
           </Card>
         )}
       </div>
+
+      <BookingPaymentsSection bookingId={b.id} payments={payments} />
 
       <BookingTasksSection bookingId={b.id} tasks={tasks} />
 

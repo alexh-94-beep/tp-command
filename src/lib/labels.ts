@@ -8,6 +8,9 @@ import type {
   ApartmentType,
   CleaningStatus,
   NameTagStatus,
+  PaymentMethod,
+  PaymentStatus,
+  PaymentType,
   RentalType,
 } from '@/types/aliases';
 
@@ -73,4 +76,62 @@ export const cleaningStatusLabel: Record<CleaningStatus, string> = {
   in_progress: 'In Arbeit',
   done: 'Erledigt',
   quality_checked: 'Qualität geprüft',
+};
+
+// ── Zahlungen ──────────────────────────────────────────────────────────
+
+export const paymentTypeLabel: Record<PaymentType, string> = {
+  rent: 'Miete',
+  deposit: 'Depot',
+  first_rent: 'Erst-Miete',
+  booking_payout: 'Booking-Auszahlung',
+  short_term_flat: 'Pauschale Kurzzeit',
+  parking: 'Parking',
+  other: 'Sonstige',
+};
+
+export const paymentStatusLabel: Record<PaymentStatus, string> = {
+  pending: 'Offen',
+  paid: 'Bezahlt',
+  overdue: 'Überfällig',
+  cancelled: 'Storniert',
+};
+
+export const paymentStatusTone: Record<
+  PaymentStatus,
+  'neutral' | 'success' | 'warning' | 'danger' | 'info'
+> = {
+  pending: 'warning',
+  paid: 'success',
+  overdue: 'danger',
+  cancelled: 'neutral',
+};
+
+export const paymentMethodLabel: Record<PaymentMethod, string> = {
+  bank_transfer: 'Banküberweisung',
+  manual_slip: 'Einzahlungsschein',
+  booking_payout: 'Booking.com',
+  flatfox: 'Flatfox',
+  card: 'Karte',
+  other: 'Sonstige',
+};
+
+export const bookingPaymentStatusLabel: Record<
+  'pending' | 'partial' | 'paid' | 'overdue',
+  string
+> = {
+  pending: 'Offen',
+  partial: 'Teilweise',
+  paid: 'Bezahlt',
+  overdue: 'Überfällig',
+};
+
+export const bookingPaymentStatusTone: Record<
+  'pending' | 'partial' | 'paid' | 'overdue',
+  'neutral' | 'success' | 'warning' | 'danger' | 'info'
+> = {
+  pending: 'warning',
+  partial: 'info',
+  paid: 'success',
+  overdue: 'danger',
 };

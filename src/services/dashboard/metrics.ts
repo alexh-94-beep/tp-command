@@ -91,6 +91,12 @@ export interface DashboardMetrics {
     overdue: number;
     dueToday: number;
   };
+  payments: {
+    openCount: number;
+    openSum: number;
+    overdueCount: number;
+    overdueSum: number;
+  };
   occupancy: {
     monthPercent: number;
     monthLabel: string; // z.B. "Juni 2026"
@@ -121,6 +127,7 @@ export async function getDashboardMetrics(
     poolPending,
     tasksOverdue,
     tasksDueToday,
+    openPayments,
   ] = await Promise.all([
     // 1. Wohnungen total (ohne ausgeschiedene)
     supabase
@@ -204,12 +211,36 @@ export async function getDashboardMetrics(
       .select('*', { count: 'exact', head: true })
       .in('status', ['open', 'in_progress'])
       .eq('due_date', today),
+    // 14. Offene + ueberfaellige Zahlungen (Summe wird clientseitig gerechnet)
+    supabase
+      .from('payments')
+      .select('amount, status')
+      .in('status', ['pending', 'overdue']),
   ]);
+
 
   const total = apartments.count ?? 0;
   // occupied = distinct apartment_ids aus occupiedBookings
   const occupiedSet = new Set((occupiedBookings.data ?? []).map((b) => b.apartment_id));
   const occupied = occupiedSet.size;
+
+  // Zahlungen aggregieren (Phase 8): kein DB-side SUM, weil PostgREST das
+  // ungemuetlich macht; bei wenigen offenen Zahlungen ist clientseitig ok.
+  const paymentRows = openPayments.data ?? [];
+  let openCount = 0;
+  let openSum = 0;
+  let overdueCount = 0;
+  let overdueSum = 0;
+  for (const p of paymentRows) {
+    const amt = Number(p.amount);
+    openCount++;
+    openSum += amt;
+    if (p.status === 'overdue') {
+      overdueCount++;
+      overdueSum += amt;
+    }
+  }
+  const paymentsAgg = { openCount, openSum, overdueCount, overdueSum };
 
   const monthPercent = occupancyPercent(
     total,
@@ -250,6 +281,7 @@ export async function getDashboardMetrics(
       overdue: tasksOverdue.count ?? 0,
       dueToday: tasksDueToday.count ?? 0,
     },
+    payments: paymentsAgg,
     occupancy: {
       monthPercent,
       monthLabel,
