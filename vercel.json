@@ -12,6 +12,10 @@
     {
       "path": "/api/cron/generate-monthly-rent",
       "schedule": "5 6 * * *"
+    },
+    {
+      "path": "/api/cron/generate-mail-drafts",
+      "schedule": "10 6 * * *"
     }
   ]
 }
