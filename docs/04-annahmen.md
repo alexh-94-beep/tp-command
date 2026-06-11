@@ -75,8 +75,11 @@ gezielt an.
 20. **Hosting**: Vercel (Frontend + API Routes), Supabase (DB, Auth, Storage).
 21. **Keine Mobile App** im MVP – die Web-App wird responsiv gebaut, sodass
     das Reinigungsteam sie auf dem Handy bedienen kann.
-22. **E-Mail-Versand** läuft über Resend (oder Postmark), Templates als
-    React-Email. Im MVP nur Plain-Drafts mit Vorschau, kein Auto-Versand.
+22. **E-Mail-Versand** läuft über Resend, Templates als reine Plain-Text-
+    Generatoren in `src/services/communications/templates.ts` (Phase 9
+    implementiert). Im MVP nur Drafts mit Vorschau, kein Auto-Versand per
+    Cron. ENV: `RESEND_API_KEY` + `MAIL_FROM` als Vercel-Env-Vars; ohne
+    Key liefert `sendDraft` einen freundlichen Fehler statt zu crashen.
 
 ## Aus Excel-Analyse vom 29.04.2026 nachgezogen
 
