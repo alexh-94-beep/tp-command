@@ -1298,6 +1298,96 @@ export type Database = {
           },
         ]
       }
+      standalone_tasks: {
+        Row: {
+          apartment_id: string | null
+          assignee_id: string | null
+          category: Database["public"]["Enums"]["standalone_task_category"]
+          created_at: string
+          created_by: string | null
+          description: string | null
+          done_at: string | null
+          done_by: string | null
+          due_date: string | null
+          id: string
+          notes: string | null
+          priority: Database["public"]["Enums"]["standalone_task_priority"]
+          status: Database["public"]["Enums"]["standalone_task_status"]
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          apartment_id?: string | null
+          assignee_id?: string | null
+          category?: Database["public"]["Enums"]["standalone_task_category"]
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          done_at?: string | null
+          done_by?: string | null
+          due_date?: string | null
+          id?: string
+          notes?: string | null
+          priority?: Database["public"]["Enums"]["standalone_task_priority"]
+          status?: Database["public"]["Enums"]["standalone_task_status"]
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          apartment_id?: string | null
+          assignee_id?: string | null
+          category?: Database["public"]["Enums"]["standalone_task_category"]
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          done_at?: string | null
+          done_by?: string | null
+          due_date?: string | null
+          id?: string
+          notes?: string | null
+          priority?: Database["public"]["Enums"]["standalone_task_priority"]
+          status?: Database["public"]["Enums"]["standalone_task_status"]
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "standalone_tasks_apartment_id_fkey"
+            columns: ["apartment_id"]
+            isOneToOne: false
+            referencedRelation: "apartments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "standalone_tasks_apartment_id_fkey"
+            columns: ["apartment_id"]
+            isOneToOne: false
+            referencedRelation: "view_apartment_status_today"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "standalone_tasks_assignee_id_fkey"
+            columns: ["assignee_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "standalone_tasks_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "standalone_tasks_done_by_fkey"
+            columns: ["done_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subleasing_stays: {
         Row: {
           apartment_id: string
@@ -1906,6 +1996,9 @@ export type Database = {
         | "EU"
         | "other"
         | "none"
+      standalone_task_category: "repair" | "office" | "inspection" | "other"
+      standalone_task_priority: "low" | "normal" | "high" | "urgent"
+      standalone_task_status: "open" | "in_progress" | "done" | "cancelled"
       sub_source: "cityus" | "other"
       sub_status: "planned" | "in_stay" | "completed" | "cancelled"
       task_assignee_role: "office" | "admin" | "cleaning" | "any"
@@ -2631,6 +2724,9 @@ export const Constants = {
         "other",
         "none",
       ],
+      standalone_task_category: ["repair", "office", "inspection", "other"],
+      standalone_task_priority: ["low", "normal", "high", "urgent"],
+      standalone_task_status: ["open", "in_progress", "done", "cancelled"],
       sub_source: ["cityus", "other"],
       sub_status: ["planned", "in_stay", "completed", "cancelled"],
       task_assignee_role: ["office", "admin", "cleaning", "any"],

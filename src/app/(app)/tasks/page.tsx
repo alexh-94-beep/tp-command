@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { addDaysIso, formatDate, todayIso } from '@/lib/dates';
 import TasksToolbar from './tasks-toolbar';
 import TaskQuickComplete from './task-quick-complete';
+import StandaloneTasksSection from './standalone-section';
 import type { BookingTaskStatus, WorkflowKind } from '@/types/aliases';
 
 export const metadata = { title: 'Aufgaben' };
@@ -45,6 +46,48 @@ export default async function TasksPage({
   await requireRole(['admin', 'office']);
   const sp = await searchParams;
   const supabase = await createSupabaseServerClient();
+
+  // Standalone-Aufgaben (Phase 10) + Stamm-Daten fuer Wizard
+  const [
+    { data: standaloneRaw },
+    { data: usersRaw },
+    { data: apartmentsRaw },
+  ] = await Promise.all([
+    supabase
+      .from('standalone_tasks')
+      .select(
+        'id, title, description, category, priority, status, due_date, created_at, apartment:apartments(number), assignee:users!standalone_tasks_assignee_id_fkey(full_name)',
+      )
+      .order('status', { ascending: true })
+      .order('due_date', { ascending: true, nullsFirst: false })
+      .order('created_at', { ascending: false })
+      .limit(200),
+    supabase
+      .from('users')
+      .select('id, full_name')
+      .eq('is_active', true)
+      .order('full_name'),
+    supabase
+      .from('apartments')
+      .select('id, number')
+      .neq('ownership', 'sold_external')
+      .order('number'),
+  ]);
+
+  const standaloneRows = (standaloneRaw ?? []).map((r) => ({
+    id: r.id,
+    title: r.title,
+    description: r.description,
+    category: r.category,
+    priority: r.priority,
+    status: r.status,
+    apartment_number: r.apartment?.number ?? null,
+    assignee_name: r.assignee?.full_name ?? null,
+    due_date: r.due_date,
+    created_at: r.created_at,
+  }));
+  const users = (usersRaw ?? []).map((u) => ({ id: u.id, full_name: u.full_name }));
+  const apartments = (apartmentsRaw ?? []).map((a) => ({ id: a.id, number: a.number }));
 
   const today = todayIso();
   const range = sp.range ?? 'open';
@@ -121,6 +164,12 @@ export default async function TasksPage({
       <PageHeader
         title="Aufgaben"
         description={`${overdue} überfällig · ${todayCount} heute · ${filtered.length} im aktuellen Filter`}
+      />
+
+      <StandaloneTasksSection
+        rows={standaloneRows}
+        users={users}
+        apartments={apartments}
       />
 
       <TasksToolbar categories={categories} />

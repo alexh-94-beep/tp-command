@@ -13,6 +13,7 @@ import type {
   CleaningType,
 } from '@/types/aliases';
 import CleaningToolbar from './cleaning-toolbar';
+import NewCleaningButton from './new-cleaning-button';
 import DamageReportButton from './damage-report-button';
 
 export const metadata = { title: 'Reinigung' };
@@ -105,6 +106,15 @@ export default async function CleaningPage({
         .order('full_name')
     : { data: [] };
 
+  // Wohnungen fuer den "Neue Reinigung"-Wizard
+  const { data: aptsForWizard } = canManage
+    ? await supabase
+        .from('apartments')
+        .select('id, number')
+        .neq('ownership', 'sold_external')
+        .order('number')
+    : { data: [] };
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -129,6 +139,16 @@ export default async function CleaningPage({
                   Wochenplan
                 </Button>
               </Link>
+              <NewCleaningButton
+                apartments={(aptsForWizard ?? []).map((a) => ({
+                  id: a.id,
+                  number: a.number,
+                }))}
+                staff={(cleaners ?? []).map((c) => ({
+                  id: c.id,
+                  full_name: c.full_name,
+                }))}
+              />
               <DamageReportButton />
               <form action={triggerForm}>
                 <Button variant="secondary" type="submit">

@@ -92,3 +92,10 @@ export type CommunicationInsert = Tables['communications']['Insert'];
 export type CommunicationType = Enums['communication_type'];
 export type CommunicationChannel = Enums['communication_channel'];
 export type CommunicationStatus = Enums['communication_status'];
+
+// ── Standalone-Aufgaben (Phase 10) ─────────────────────────────────────
+export type StandaloneTask = Tables['standalone_tasks']['Row'];
+export type StandaloneTaskInsert = Tables['standalone_tasks']['Insert'];
+export type StandaloneTaskCategory = Enums['standalone_task_category'];
+export type StandaloneTaskStatus = Enums['standalone_task_status'];
+export type StandaloneTaskPriority = Enums['standalone_task_priority'];

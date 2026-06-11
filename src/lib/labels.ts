@@ -14,6 +14,9 @@ import type {
   PaymentStatus,
   PaymentType,
   RentalType,
+  StandaloneTaskCategory,
+  StandaloneTaskPriority,
+  StandaloneTaskStatus,
 } from '@/types/aliases';
 
 export const apartmentStatusLabel: Record<ApartmentStatus, string> = {
@@ -167,4 +170,47 @@ export const communicationStatusTone: Record<
   sent: 'success',
   failed: 'danger',
   cancelled: 'neutral',
+};
+
+// ── Standalone-Aufgaben ────────────────────────────────────────────────
+
+export const standaloneTaskCategoryLabel: Record<StandaloneTaskCategory, string> = {
+  repair: 'Reparatur',
+  office: 'Office-Todo',
+  inspection: 'Inspektion',
+  other: 'Sonstige',
+};
+
+export const standaloneTaskStatusLabel: Record<StandaloneTaskStatus, string> = {
+  open: 'Offen',
+  in_progress: 'In Arbeit',
+  done: 'Erledigt',
+  cancelled: 'Storniert',
+};
+
+export const standaloneTaskStatusTone: Record<
+  StandaloneTaskStatus,
+  'neutral' | 'success' | 'warning' | 'danger' | 'info'
+> = {
+  open: 'warning',
+  in_progress: 'info',
+  done: 'success',
+  cancelled: 'neutral',
+};
+
+export const standaloneTaskPriorityLabel: Record<StandaloneTaskPriority, string> = {
+  low: 'Niedrig',
+  normal: 'Normal',
+  high: 'Hoch',
+  urgent: 'Dringend',
+};
+
+export const standaloneTaskPriorityTone: Record<
+  StandaloneTaskPriority,
+  'neutral' | 'success' | 'warning' | 'danger' | 'info'
+> = {
+  low: 'neutral',
+  normal: 'neutral',
+  high: 'warning',
+  urgent: 'danger',
 };

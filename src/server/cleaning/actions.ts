@@ -302,3 +302,79 @@ export async function recalculateAllDurations() {
   revalidatePath('/cleaning/daily');
   return { ok: true, updated, unchanged, total: (tasks ?? []).length };
 }
+
+// ── Manuelle Anlage eines Reinigungs-Auftrags (Phase 10) ──────────────
+//
+// Office bekommt einen Anruf "Bitte zusaetzliche Reinigung in C.0202
+// am Freitag" und kann den Auftrag direkt erfassen — ohne Umweg ueber
+// eine Buchung.
+
+const createCleaningSchema = z.object({
+  apartment_id: z.string().uuid('Wohnung waehlen'),
+  scheduled_date: z.string().min(1, 'Datum fehlt'),
+  scheduled_time: z.string().optional(),
+  type: z.enum([
+    'checkout',
+    'pre_checkin',
+    'intermediate',
+    'special',
+    'deep_clean',
+    'inspection',
+    'weekly_clean',
+    'weekly_clean_linen',
+  ]),
+  priority: z.enum(['low', 'normal', 'high', 'urgent']).default('normal'),
+  staff_id: z.string().uuid().optional(),
+  estimated_duration_minutes: z.coerce.number().int().positive().optional(),
+  notes: z.string().optional(),
+});
+
+export async function createCleaningTask(
+  formData: FormData,
+): Promise<{ ok: boolean; error?: string; taskId?: string }> {
+  await requireRole(['admin', 'office']);
+  const raw: Record<string, unknown> = Object.fromEntries(formData.entries());
+  for (const k of Object.keys(raw)) if (raw[k] === '') delete raw[k];
+  const parsed = createCleaningSchema.safeParse(raw);
+  if (!parsed.success) return { ok: false, error: 'Bitte Eingaben pruefen.' };
+  const v = parsed.data;
+  const supabase = await createSupabaseServerClient();
+
+  // Default-Dauer aus Wohnungstyp ableiten, wenn keine angegeben wurde
+  let duration = v.estimated_duration_minutes;
+  if (!duration) {
+    const { data: apt } = await supabase
+      .from('apartments')
+      .select('type')
+      .eq('id', v.apartment_id)
+      .maybeSingle();
+    if (apt) {
+      const src: CleaningSource = v.type.startsWith('weekly_') ? 'cityus' : 'booking';
+      duration = estimateDurationMinutes(src, apt.type, v.type);
+    }
+  }
+
+  const { data: created, error } = await supabase
+    .from('cleaning_tasks')
+    .insert({
+      apartment_id: v.apartment_id,
+      scheduled_date: v.scheduled_date,
+      scheduled_time: v.scheduled_time ?? null,
+      type: v.type,
+      priority: v.priority,
+      status: 'open',
+      staff_id: v.staff_id ?? null,
+      estimated_duration_minutes: duration ?? null,
+      notes: v.notes ?? null,
+    })
+    .select('id')
+    .single();
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath('/cleaning');
+  revalidatePath('/cleaning/daily');
+  revalidatePath('/cleaning/weekly');
+  revalidatePath('/dashboard');
+  revalidatePath(`/apartments/${v.apartment_id}`);
+  return { ok: true, taskId: created.id };
+}
