@@ -21,6 +21,9 @@ import BookingTasksSection, {
 import BookingPaymentsSection, {
   type PaymentRow,
 } from './booking-payments-section';
+import BookingCommunicationsSection, {
+  type CommunicationRow,
+} from './booking-communications-section';
 
 export const metadata = { title: 'Buchung' };
 
@@ -144,6 +147,23 @@ export default async function BookingDetailPage({
     notes: p.notes,
   }));
 
+  // Kommunikation laden (Phase 9)
+  const { data: rawComms } = await supabase
+    .from('communications')
+    .select('id, type, recipient, subject, body, status, sent_at, created_at')
+    .eq('booking_id', b.id)
+    .order('created_at', { ascending: false });
+  const communications: CommunicationRow[] = (rawComms ?? []).map((c) => ({
+    id: c.id,
+    type: c.type,
+    recipient: c.recipient,
+    subject: c.subject,
+    body: c.body,
+    status: c.status,
+    sent_at: c.sent_at,
+    created_at: c.created_at,
+  }));
+
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2 text-sm">
@@ -242,6 +262,11 @@ export default async function BookingDetailPage({
       </div>
 
       <BookingPaymentsSection bookingId={b.id} payments={payments} />
+
+      <BookingCommunicationsSection
+        bookingId={b.id}
+        communications={communications}
+      />
 
       <BookingTasksSection bookingId={b.id} tasks={tasks} />
 

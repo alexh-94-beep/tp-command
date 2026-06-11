@@ -7,6 +7,8 @@ import type {
   ApartmentStatus,
   ApartmentType,
   CleaningStatus,
+  CommunicationStatus,
+  CommunicationType,
   NameTagStatus,
   PaymentMethod,
   PaymentStatus,
@@ -134,4 +136,35 @@ export const bookingPaymentStatusTone: Record<
   partial: 'info',
   paid: 'success',
   overdue: 'danger',
+};
+
+// ── Kommunikation ──────────────────────────────────────────────────────
+
+export const communicationTypeLabel: Record<CommunicationType, string> = {
+  welcome: 'Willkommen',
+  payment_info: 'Zahlungsinfo',
+  checkin_info: 'Anreise-Infos',
+  wifi_info: 'WLAN-Zugang',
+  payment_reminder: 'Zahlungs-Erinnerung',
+  checkout_info: 'Auszugs-Infos',
+  internal_cleaning_notification: 'Reinigungs-Notiz (intern)',
+};
+
+export const communicationStatusLabel: Record<CommunicationStatus, string> = {
+  draft: 'Entwurf',
+  scheduled: 'Geplant',
+  sent: 'Gesendet',
+  failed: 'Fehlgeschlagen',
+  cancelled: 'Storniert',
+};
+
+export const communicationStatusTone: Record<
+  CommunicationStatus,
+  'neutral' | 'success' | 'warning' | 'danger' | 'info'
+> = {
+  draft: 'neutral',
+  scheduled: 'info',
+  sent: 'success',
+  failed: 'danger',
+  cancelled: 'neutral',
 };

@@ -85,3 +85,10 @@ export type PaymentInsert = Tables['payments']['Insert'];
 export type PaymentType = Enums['payment_type'];
 export type PaymentStatus = Enums['payment_status'];
 export type PaymentMethod = Enums['payment_method'];
+
+// ── Kommunikation (Phase 9) ────────────────────────────────────────────
+export type Communication = Tables['communications']['Row'];
+export type CommunicationInsert = Tables['communications']['Insert'];
+export type CommunicationType = Enums['communication_type'];
+export type CommunicationChannel = Enums['communication_channel'];
+export type CommunicationStatus = Enums['communication_status'];
