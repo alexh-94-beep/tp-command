@@ -116,6 +116,25 @@ export default async function CleaningPage({
         .order('number')
     : { data: [] };
 
+  // Externe Eigentuemer + deren Wohnungen
+  const { data: ownersRaw } = canManage
+    ? await supabase
+        .from('external_owners')
+        .select(
+          'id, name, external_apartments:external_apartments!external_apartments_owner_id_fkey(id, label)',
+        )
+        .eq('is_active', true)
+        .order('name')
+    : { data: [] };
+  const externalOwners = (ownersRaw ?? []).map((o) => ({
+    id: o.id,
+    name: o.name,
+    apartments: (o.external_apartments ?? []).map((a) => ({
+      id: a.id,
+      label: a.label,
+    })),
+  }));
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -149,6 +168,7 @@ export default async function CleaningPage({
                   id: c.id,
                   full_name: c.full_name,
                 }))}
+                externalOwners={externalOwners}
               />
               <CityusImportButton />
               <DamageReportButton />

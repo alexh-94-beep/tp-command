@@ -310,7 +310,8 @@ export async function recalculateAllDurations() {
 // eine Buchung.
 
 const createCleaningSchema = z.object({
-  apartment_id: z.string().uuid('Wohnung waehlen'),
+  apartment_id: z.string().uuid().optional(),
+  external_apartment_id: z.string().uuid().optional(),
   scheduled_date: z.string().min(1, 'Datum fehlt'),
   scheduled_time: z.string().optional(),
   type: z.enum([
@@ -345,11 +346,14 @@ export async function createCleaningTask(
   const parsed = createCleaningSchema.safeParse(raw);
   if (!parsed.success) return { ok: false, error: 'Bitte Eingaben pruefen.' };
   const v = parsed.data;
+  if (!v.apartment_id && !v.external_apartment_id) {
+    return { ok: false, error: 'Bitte eine Wohnung wählen (eigene oder extern).' };
+  }
   const supabase = await createSupabaseServerClient();
 
   // Default-Dauer aus Wohnungstyp ableiten, wenn keine angegeben wurde
   let duration = v.estimated_duration_minutes;
-  if (!duration) {
+  if (!duration && v.apartment_id) {
     const { data: apt } = await supabase
       .from('apartments')
       .select('type')
@@ -367,7 +371,8 @@ export async function createCleaningTask(
   const { data: created, error } = await supabase
     .from('cleaning_tasks')
     .insert({
-      apartment_id: v.apartment_id,
+      apartment_id: v.apartment_id ?? null,
+      external_apartment_id: v.external_apartment_id ?? null,
       scheduled_date: v.scheduled_date,
       scheduled_time: v.scheduled_time ?? null,
       type: v.type,
@@ -379,6 +384,7 @@ export async function createCleaningTask(
       linen_change: linenChange,
       time_flexible: v.time_flexible,
       time_constraint_note: v.time_constraint_note ?? null,
+      source: v.external_apartment_id ? 'external_owner' : 'manual',
     })
     .select('id')
     .single();

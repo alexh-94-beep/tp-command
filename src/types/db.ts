@@ -1094,6 +1094,7 @@ export type Database = {
           is_active: boolean
           label: string
           notes: string | null
+          owner_id: string | null
           updated_at: string
         }
         Insert: {
@@ -1107,6 +1108,7 @@ export type Database = {
           is_active?: boolean
           label: string
           notes?: string | null
+          owner_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -1119,6 +1121,51 @@ export type Database = {
           id?: string
           is_active?: boolean
           label?: string
+          notes?: string | null
+          owner_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "external_apartments_owner_id_fkey"
+            columns: ["owner_id"]
+            isOneToOne: false
+            referencedRelation: "external_owners"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      external_owners: {
+        Row: {
+          address: string | null
+          contact_email: string | null
+          contact_phone: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          contact_email?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
           notes?: string | null
           updated_at?: string
         }

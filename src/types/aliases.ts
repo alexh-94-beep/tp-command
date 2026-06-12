@@ -86,6 +86,12 @@ export type CleaningSourceTag =
   | 'workflow'
   | 'external_owner';
 
+// 13.5: Externe Eigentuemer (Eigentuemer hat 1..n Wohnungen)
+export type ExternalOwner = Tables['external_owners']['Row'];
+export type ExternalOwnerInsert = Tables['external_owners']['Insert'];
+export type ExternalApartment = Tables['external_apartments']['Row'];
+export type ExternalApartmentInsert = Tables['external_apartments']['Insert'];
+
 // ── Zahlungen (Phase 8) ────────────────────────────────────────────────
 // BookingPaymentStatus ist oben bei Bookings bereits exportiert.
 export type Payment = Tables['payments']['Row'];
