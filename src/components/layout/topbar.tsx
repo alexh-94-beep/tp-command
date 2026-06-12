@@ -7,9 +7,13 @@ const roleLabel: Record<AppUser['role'], string> = {
   management: 'Management',
 };
 
+/**
+ * Desktop-Topbar (>= md). Auf mobile wird sie versteckt — dort uebernimmt
+ * MobileNav den Header inkl. Hamburger.
+ */
 export function Topbar({ user }: { user: AppUser }) {
   return (
-    <header className="flex h-14 items-center justify-between border-b border-slate-200 bg-white px-6">
+    <header className="hidden h-14 items-center justify-between border-b border-slate-200 bg-white px-6 md:flex">
       <div className="text-sm text-slate-500">TP-Command – internes Betriebssystem</div>
 
       <div className="flex items-center gap-4">

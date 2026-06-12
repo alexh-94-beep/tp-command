@@ -174,7 +174,42 @@ export default async function CleaningPage({
           Keine Aufträge im aktuellen Filter.
         </div>
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+        <>
+        {/* Mobile: Card-Stack mit grossen Touch-Targets */}
+        <div className="space-y-2 md:hidden">
+          {(tasks ?? []).map((t) => (
+            <Link
+              key={t.id}
+              href={`/cleaning/${t.id}`}
+              className="block rounded-xl border border-slate-200 bg-white p-3 active:bg-slate-50"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base font-semibold">
+                      {t.apartment?.number ?? t.external_apartment?.label ?? '–'}
+                    </span>
+                    <Badge tone={priorityTone[t.priority]}>{t.priority}</Badge>
+                  </div>
+                  <div className="mt-0.5 text-xs text-slate-600">
+                    {typeLabel[t.type] ?? t.type}
+                  </div>
+                  <div className="mt-0.5 text-xs text-slate-500">
+                    {formatDate(t.scheduled_date)}
+                    {t.scheduled_time && ` · ${t.scheduled_time}`}
+                    {t.staff?.full_name && ` · ${t.staff.full_name}`}
+                  </div>
+                </div>
+                <Badge tone={statusTone[t.status]}>
+                  {cleaningStatusLabel[t.status]}
+                </Badge>
+              </div>
+            </Link>
+          ))}
+        </div>
+
+        {/* Desktop: Tabelle */}
+        <div className="hidden overflow-x-auto rounded-xl border border-slate-200 bg-white md:block">
           <table className="min-w-full divide-y divide-slate-200 text-sm">
             <thead className="bg-slate-50 text-left text-xs tracking-wide text-slate-500 uppercase">
               <tr>
@@ -227,6 +262,7 @@ export default async function CleaningPage({
             </tbody>
           </table>
         </div>
+        </>
       )}
     </div>
   );

@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import { Camera, Play, Check, ShieldCheck, RotateCcw } from 'lucide-react';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -96,26 +97,50 @@ export default function CleaningTaskActions({
         )}
 
         {canChangeStatus && (
-          <div className="flex flex-wrap gap-2">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             {status === 'open' && (
-              <Button onClick={() => setStatus('in_progress')} disabled={pending}>
+              <button
+                type="button"
+                onClick={() => setStatus('in_progress')}
+                disabled={pending}
+                className="inline-flex h-14 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-base font-medium text-white shadow-sm hover:bg-blue-700 active:bg-blue-800 disabled:opacity-50 sm:col-span-2"
+              >
+                <Play className="h-5 w-5" />
                 Mit Reinigung beginnen
-              </Button>
+              </button>
             )}
             {status === 'in_progress' && (
-              <Button onClick={() => setStatus('done')} disabled={pending}>
+              <button
+                type="button"
+                onClick={() => setStatus('done')}
+                disabled={pending}
+                className="inline-flex h-14 items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 text-base font-medium text-white shadow-sm hover:bg-emerald-700 active:bg-emerald-800 disabled:opacity-50 sm:col-span-2"
+              >
+                <Check className="h-5 w-5" />
                 Reinigung erledigt
-              </Button>
+              </button>
             )}
             {canManage && status === 'done' && (
-              <Button onClick={() => setStatus('quality_checked')} disabled={pending}>
+              <button
+                type="button"
+                onClick={() => setStatus('quality_checked')}
+                disabled={pending}
+                className="inline-flex h-14 items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 text-base font-medium text-white shadow-sm hover:bg-emerald-700 active:bg-emerald-800 disabled:opacity-50 sm:col-span-2"
+              >
+                <ShieldCheck className="h-5 w-5" />
                 Qualität geprüft &amp; freigegeben
-              </Button>
+              </button>
             )}
             {status !== 'open' && canManage && (
-              <Button variant="secondary" onClick={() => setStatus('open')} disabled={pending}>
+              <button
+                type="button"
+                onClick={() => setStatus('open')}
+                disabled={pending}
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 text-sm font-medium text-slate-700 hover:bg-slate-50 active:bg-slate-100 disabled:opacity-50"
+              >
+                <RotateCcw className="h-4 w-4" />
                 Wieder öffnen
-              </Button>
+              </button>
             )}
           </div>
         )}
@@ -141,14 +166,23 @@ export default function CleaningTaskActions({
 
         <div>
           <label className="block text-sm font-medium text-slate-700">Foto hinzufügen</label>
-          <input
-            type="file"
-            accept="image/*"
-            capture="environment"
-            onChange={uploadPhoto}
-            disabled={pending}
-            className="mt-1 block text-sm file:mr-3 file:rounded-md file:border-0 file:bg-slate-900 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-slate-800"
-          />
+          <label
+            className={`mt-1 inline-flex h-14 w-full cursor-pointer items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-4 text-base font-medium text-slate-700 shadow-sm hover:bg-slate-50 active:bg-slate-100 sm:w-auto ${pending ? 'pointer-events-none opacity-50' : ''}`}
+          >
+            <Camera className="h-5 w-5" />
+            Foto aufnehmen
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={uploadPhoto}
+              disabled={pending}
+              className="sr-only"
+            />
+          </label>
+          <p className="mt-1 text-xs text-slate-500">
+            Vom Handy aus öffnet sich direkt die Kamera.
+          </p>
         </div>
 
         <div>
