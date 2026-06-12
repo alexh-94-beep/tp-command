@@ -14,6 +14,7 @@ import type {
 } from '@/types/aliases';
 import CleaningToolbar from './cleaning-toolbar';
 import NewCleaningButton from './new-cleaning-button';
+import CityusImportButton from './cityus-import-button';
 import DamageReportButton from './damage-report-button';
 
 export const metadata = { title: 'Reinigung' };
@@ -149,6 +150,7 @@ export default async function CleaningPage({
                   full_name: c.full_name,
                 }))}
               />
+              <CityusImportButton />
               <DamageReportButton />
               <form action={triggerForm}>
                 <Button variant="secondary" type="submit">

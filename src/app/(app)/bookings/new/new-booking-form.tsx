@@ -250,12 +250,18 @@ export default function NewBookingForm({
                   onChange={(e) => setRentalType(e.target.value as RentalType)}
                 >
                   {RENTAL_TYPES.map((t) => (
-                    <option key={t} value={t} disabled={!allowedTypes.includes(t)}>
+                    <option key={t} value={t}>
                       {rentalTypeLabel[t]}
-                      {!allowedTypes.includes(t) ? ' (nicht erlaubt)' : ''}
+                      {!allowedTypes.includes(t) ? ' (nicht voreingestellt)' : ''}
                     </option>
                   ))}
                 </select>
+                {selectedApartment && !allowedTypes.includes(rentalType) && (
+                  <p className="mt-1 text-xs text-amber-700">
+                    Diese Wohnung ist für &bdquo;{rentalTypeLabel[rentalType]}&ldquo;
+                    nicht voreingestellt. Buchung trotzdem möglich.
+                  </p>
+                )}
               </div>
               <div>
                 <label className={labelCls}>

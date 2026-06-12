@@ -78,6 +78,14 @@ export type CleaningType = Enums['cleaning_type'];
 export type CleaningPriority = Enums['cleaning_priority'];
 export type AccessMethod = Enums['access_method'];
 
+// 13.2: source ist text mit CHECK-Constraint (siehe Migration)
+export type CleaningSourceTag =
+  | 'manual'
+  | 'auto_checkout'
+  | 'cityus'
+  | 'workflow'
+  | 'external_owner';
+
 // ── Zahlungen (Phase 8) ────────────────────────────────────────────────
 // BookingPaymentStatus ist oben bei Bookings bereits exportiert.
 export type Payment = Tables['payments']['Row'];

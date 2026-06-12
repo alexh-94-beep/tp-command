@@ -779,6 +779,7 @@ export type Database = {
           external_apartment_id: string | null
           id: string
           inspection_summary: string | null
+          linen_change: boolean
           notes: string | null
           priority: Database["public"]["Enums"]["cleaning_priority"]
           quality_checked_at: string | null
@@ -787,9 +788,12 @@ export type Database = {
           scheduled_date: string
           scheduled_time: string | null
           scheduled_window: unknown
+          source: string
           staff_id: string | null
           status: Database["public"]["Enums"]["cleaning_status"]
           subleasing_stay_id: string | null
+          time_constraint_note: string | null
+          time_flexible: boolean
           type: Database["public"]["Enums"]["cleaning_type"]
           updated_at: string
         }
@@ -808,6 +812,7 @@ export type Database = {
           external_apartment_id?: string | null
           id?: string
           inspection_summary?: string | null
+          linen_change?: boolean
           notes?: string | null
           priority?: Database["public"]["Enums"]["cleaning_priority"]
           quality_checked_at?: string | null
@@ -816,9 +821,12 @@ export type Database = {
           scheduled_date: string
           scheduled_time?: string | null
           scheduled_window?: unknown
+          source?: string
           staff_id?: string | null
           status?: Database["public"]["Enums"]["cleaning_status"]
           subleasing_stay_id?: string | null
+          time_constraint_note?: string | null
+          time_flexible?: boolean
           type: Database["public"]["Enums"]["cleaning_type"]
           updated_at?: string
         }
@@ -837,6 +845,7 @@ export type Database = {
           external_apartment_id?: string | null
           id?: string
           inspection_summary?: string | null
+          linen_change?: boolean
           notes?: string | null
           priority?: Database["public"]["Enums"]["cleaning_priority"]
           quality_checked_at?: string | null
@@ -845,9 +854,12 @@ export type Database = {
           scheduled_date?: string
           scheduled_time?: string | null
           scheduled_window?: unknown
+          source?: string
           staff_id?: string | null
           status?: Database["public"]["Enums"]["cleaning_status"]
           subleasing_stay_id?: string | null
+          time_constraint_note?: string | null
+          time_flexible?: boolean
           type?: Database["public"]["Enums"]["cleaning_type"]
           updated_at?: string
         }
