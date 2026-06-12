@@ -57,6 +57,7 @@ export default async function CleaningDetailPage({
        access_method, access_notes, assigned_to, staff_id, completed_at, quality_checked_at,
        estimated_duration_minutes, actual_duration_minutes,
        damage_found, damage_description, inspection_summary,
+       linen_change, time_flexible, time_constraint_note, source,
        apartment:apartments(id, number, keybox_default_code, keybox_default_location),
        external_apartment:external_apartments(id, label, address, contact_name, contact_phone, contact_email),
        staff:cleaning_staff(id, full_name, phone),
@@ -153,6 +154,27 @@ export default async function CleaningDetailPage({
                 <span className="text-slate-500">Check-out Zeit:</span> {booking.check_out_time}
               </div>
             )}
+            <div>
+              <span className="text-slate-500">Bettwäsche:</span>{' '}
+              {task.linen_change ? (
+                <Badge tone="info">wird gewechselt</Badge>
+              ) : (
+                <span className="text-slate-700">nein</span>
+              )}
+            </div>
+            <div>
+              <span className="text-slate-500">Zeitlich:</span>{' '}
+              {task.time_flexible ? (
+                <span className="text-slate-700">flexibel</span>
+              ) : (
+                <Badge tone="warning">fixe Vorgabe</Badge>
+              )}
+              {!task.time_flexible && task.time_constraint_note && (
+                <div className="mt-1 rounded border border-amber-200 bg-amber-50 px-2 py-1 text-xs text-amber-900">
+                  {task.time_constraint_note}
+                </div>
+              )}
+            </div>
             <div>
               <span className="text-slate-500">Reinigerin:</span> {staff?.full_name ?? '–'}
               {staff?.phone && (

@@ -327,6 +327,13 @@ const createCleaningSchema = z.object({
   staff_id: z.string().uuid().optional(),
   estimated_duration_minutes: z.coerce.number().int().positive().optional(),
   notes: z.string().optional(),
+  linen_change: z
+    .preprocess((v) => v === '1' || v === 'on' || v === true, z.boolean())
+    .default(false),
+  time_flexible: z
+    .preprocess((v) => v === '1' || v === 'on' || v === true, z.boolean())
+    .default(true),
+  time_constraint_note: z.string().optional(),
 });
 
 export async function createCleaningTask(
@@ -354,6 +361,9 @@ export async function createCleaningTask(
     }
   }
 
+  // weekly_clean_linen impliziert Bettwaesche-Wechsel
+  const linenChange = v.linen_change || v.type === 'weekly_clean_linen';
+
   const { data: created, error } = await supabase
     .from('cleaning_tasks')
     .insert({
@@ -366,6 +376,9 @@ export async function createCleaningTask(
       staff_id: v.staff_id ?? null,
       estimated_duration_minutes: duration ?? null,
       notes: v.notes ?? null,
+      linen_change: linenChange,
+      time_flexible: v.time_flexible,
+      time_constraint_note: v.time_constraint_note ?? null,
     })
     .select('id')
     .single();

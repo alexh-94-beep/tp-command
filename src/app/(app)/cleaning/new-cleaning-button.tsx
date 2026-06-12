@@ -148,6 +148,31 @@ export default function NewCleaningButton({
                   ))}
                 </select>
               </div>
+              <div className="grid grid-cols-1 gap-2 rounded-md border border-slate-200 bg-slate-50 p-3 sm:grid-cols-2">
+                <label className="flex items-center gap-2 text-sm">
+                  <input type="checkbox" name="linen_change" value="1" />
+                  Bettwäsche wechseln
+                </label>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    name="time_flexible"
+                    value="1"
+                    defaultChecked
+                  />
+                  Zeitlich flexibel
+                </label>
+                <div className="sm:col-span-2">
+                  <label className="block text-xs text-slate-500">
+                    Zeitliche Vorgabe / Hinweis (nur wenn nicht flexibel)
+                  </label>
+                  <input
+                    name="time_constraint_note"
+                    placeholder="z.B. Eigentümer wünscht 10:00 zwingend"
+                    className={inputCls}
+                  />
+                </div>
+              </div>
               <div>
                 <label className="block text-xs text-slate-500">Notiz / Auftrag</label>
                 <textarea
