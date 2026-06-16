@@ -43,6 +43,8 @@ const statusTone: Record<BookingStatus, 'neutral' | 'success' | 'warning' | 'inf
 interface SearchParams {
   status?: string;
   rental_type?: string;
+  /** Drill-Down vom Dashboard: in_today / out_today / in_week / out_week */
+  event?: 'in_today' | 'out_today' | 'in_week' | 'out_week';
 }
 
 export default async function BookingsPage({
@@ -72,8 +74,36 @@ export default async function BookingsPage({
   if (statuses.length) query = query.in('status', statuses);
   if (rentals.length) query = query.in('rental_type', rentals);
 
+  // Drill-Down vom Dashboard: nur Buchungen mit Einzug/Auszug am Tag/Woche
+  const today = new Date().toISOString().slice(0, 10);
+  const next7 = new Date();
+  next7.setDate(next7.getDate() + 7);
+  const next7Iso = next7.toISOString().slice(0, 10);
+  if (sp.event === 'in_today') {
+    query = query.in('status', ['planned', 'active']).eq('start_date', today);
+  } else if (sp.event === 'out_today') {
+    query = query.in('status', ['planned', 'active']).eq('end_date', today);
+  } else if (sp.event === 'in_week') {
+    query = query
+      .in('status', ['planned', 'active'])
+      .gte('start_date', today)
+      .lte('start_date', next7Iso);
+  } else if (sp.event === 'out_week') {
+    query = query
+      .in('status', ['planned', 'active'])
+      .gte('end_date', today)
+      .lte('end_date', next7Iso);
+  }
+
   const { data } = await query;
   const rows = data ?? [];
+
+  const eventLabel: Record<NonNullable<SearchParams['event']>, string> = {
+    in_today: 'Einzüge heute',
+    out_today: 'Auszüge heute',
+    in_week: 'Einzüge nächste 7 Tage',
+    out_week: 'Auszüge nächste 7 Tage',
+  };
 
   return (
     <div className="space-y-6">
@@ -91,9 +121,22 @@ export default async function BookingsPage({
         </Link>
       ) : null}
 
+      {sp.event ? (
+        <div className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+          Gefilterte Liste: <strong>{eventLabel[sp.event]}</strong> ·{' '}
+          <Link href="/bookings" className="underline">
+            Filter entfernen
+          </Link>
+        </div>
+      ) : null}
+
       <PageHeader
         title="Buchungen"
-        description="Mietverhältnisse aller Arten: Langzeit, Kurzzeit, Booking."
+        description={
+          sp.event
+            ? eventLabel[sp.event]
+            : 'Mietverhältnisse aller Arten: Langzeit, Kurzzeit, Booking.'
+        }
         actions={
           <div className="flex gap-2">
             <Link href="/bookings/flatfox">

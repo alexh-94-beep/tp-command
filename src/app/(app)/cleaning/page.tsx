@@ -49,7 +49,7 @@ interface SearchParams {
   type?: string;
   assignee?: string;
   owner?: string;
-  range?: 'open' | 'today' | 'week' | 'all';
+  range?: 'open' | 'today' | 'week' | 'overdue' | 'all';
 }
 
 async function triggerForm() {
@@ -90,6 +90,8 @@ export default async function CleaningPage({
   if (range === 'today') query = query.eq('scheduled_date', today);
   else if (range === 'week')
     query = query.gte('scheduled_date', today).lte('scheduled_date', in7Iso);
+  else if (range === 'overdue')
+    query = query.in('status', ['open', 'in_progress']).lt('scheduled_date', today);
   else if (range === 'open') query = query.in('status', ['open', 'in_progress']);
 
   if (sp.status) query = query.eq('status', sp.status as CleaningStatus);
@@ -117,8 +119,12 @@ export default async function CleaningPage({
 
   const { data: tasks } = await query;
 
+  // Office/Admin haben volle Rechte. Mireme (cleaning) darf seit Phase 15
+  // selber Reinigungsauftraege erfassen, aber keinen Cityus-Import, keine
+  // Massen-Aktionen und keine Tagesplan-PDFs steuern.
   const canManage = me.role === 'admin' || me.role === 'office';
-  const { data: cleaners } = canManage
+  const canCreate = canManage || me.role === 'cleaning';
+  const { data: cleaners } = canCreate
     ? await supabase
         .from('cleaning_staff')
         .select('id, full_name')
@@ -127,7 +133,7 @@ export default async function CleaningPage({
     : { data: [] };
 
   // Wohnungen fuer den "Neue Reinigung"-Wizard
-  const { data: aptsForWizard } = canManage
+  const { data: aptsForWizard } = canCreate
     ? await supabase
         .from('apartments')
         .select('id, number')
@@ -136,7 +142,7 @@ export default async function CleaningPage({
     : { data: [] };
 
   // Externe Eigentuemer + deren Wohnungen
-  const { data: ownersRaw } = canManage
+  const { data: ownersRaw } = canCreate
     ? await supabase
         .from('external_owners')
         .select(
@@ -164,7 +170,7 @@ export default async function CleaningPage({
             : 'Deine Reinigungs-Aufträge.'
         }
         actions={
-          canManage ? (
+          canCreate ? (
             <div className="flex flex-wrap gap-2">
               <Link href="/cleaning/daily">
                 <Button variant="secondary">
@@ -189,27 +195,31 @@ export default async function CleaningPage({
                 }))}
                 externalOwners={externalOwners}
               />
-              <CityusImportButton />
-              <DamageReportButton />
-              <form action={triggerForm}>
-                <Button variant="secondary" type="submit">
-                  <RefreshCw className="h-4 w-4" />
-                  Aufträge generieren
-                </Button>
-              </form>
-              <form action={recalcForm}>
-                <Button variant="secondary" type="submit">
-                  <RefreshCw className="h-4 w-4" />
-                  Dauer neu berechnen
-                </Button>
-              </form>
+              {canManage ? (
+                <>
+                  <CityusImportButton />
+                  <DamageReportButton />
+                  <form action={triggerForm}>
+                    <Button variant="secondary" type="submit">
+                      <RefreshCw className="h-4 w-4" />
+                      Aufträge generieren
+                    </Button>
+                  </form>
+                  <form action={recalcForm}>
+                    <Button variant="secondary" type="submit">
+                      <RefreshCw className="h-4 w-4" />
+                      Dauer neu berechnen
+                    </Button>
+                  </form>
+                </>
+              ) : null}
             </div>
           ) : undefined
         }
       />
 
       <CleaningToolbar
-        canManage={canManage}
+        canManage={canCreate}
         cleaners={cleaners ?? []}
         owners={externalOwners.map((o) => ({ id: o.id, name: o.name }))}
       />

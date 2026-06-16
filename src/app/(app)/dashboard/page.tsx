@@ -13,10 +13,12 @@ import {
 } from 'lucide-react';
 import { formatMoney } from '@/lib/money';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
+import { requireUser } from '@/lib/auth/session';
 import { PageHeader } from '@/components/shared/page-header';
 import { Badge } from '@/components/ui/badge';
 import { getDashboardMetrics } from '@/services/dashboard/metrics';
 import { formatDateLong } from '@/lib/dates';
+import CleaningDashboard from './cleaning-dashboard';
 
 export const metadata = { title: 'Dashboard' };
 
@@ -24,6 +26,13 @@ export const metadata = { title: 'Dashboard' };
 export const dynamic = 'force-dynamic';
 
 export default async function DashboardPage() {
+  const me = await requireUser();
+
+  // Mireme/Cleaning-Rolle bekommt eine reduzierte, aufgabenorientierte Sicht.
+  if (me.role === 'cleaning') {
+    return <CleaningDashboard me={me} />;
+  }
+
   const supabase = await createSupabaseServerClient();
   const m = await getDashboardMetrics(supabase);
 
@@ -37,28 +46,28 @@ export default async function DashboardPage() {
       {/* Heute-Zeile: was steht heute an */}
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          href={{ pathname: '/calendar', query: { date: m.today } }}
+          href={{ pathname: '/bookings', query: { event: 'in_today' } }}
           icon={<ArrowDownToLine className="h-5 w-5" />}
           label="Heute Einzug"
           value={m.movements.checkInsToday}
           tone={m.movements.checkInsToday > 0 ? 'success' : 'neutral'}
         />
         <StatCard
-          href={{ pathname: '/calendar', query: { date: m.today } }}
+          href={{ pathname: '/bookings', query: { event: 'out_today' } }}
           icon={<ArrowUpFromLine className="h-5 w-5" />}
           label="Heute Auszug"
           value={m.movements.checkOutsToday}
           tone={m.movements.checkOutsToday > 0 ? 'warning' : 'neutral'}
         />
         <StatCard
-          href={{ pathname: '/cleaning/daily', query: { date: m.today } }}
+          href={{ pathname: '/cleaning', query: { range: 'today' } }}
           icon={<Sparkles className="h-5 w-5" />}
           label="Reinigungen heute"
           value={m.cleanings.openToday}
           tone={m.cleanings.openToday > 0 ? 'info' : 'neutral'}
         />
         <StatCard
-          href={{ pathname: '/tasks', query: { due: 'today' } }}
+          href={{ pathname: '/tasks', query: { range: 'today' } }}
           icon={<ListChecks className="h-5 w-5" />}
           label="Aufgaben heute fällig"
           value={m.tasks.dueToday}
@@ -79,7 +88,7 @@ export default async function DashboardPage() {
             description="Booking.com-Anmeldungen, die einer Wohnung zugewiesen werden müssen"
           />
           <StatCard
-            href={{ pathname: '/cleaning', query: { overdue: '1' } }}
+            href={{ pathname: '/cleaning', query: { range: 'overdue' } }}
             icon={<AlertTriangle className="h-5 w-5" />}
             label="Reinigungen überfällig"
             value={m.cleanings.overdue}
@@ -87,7 +96,7 @@ export default async function DashboardPage() {
             description="Geplant vor heute, noch nicht erledigt"
           />
           <StatCard
-            href={{ pathname: '/tasks', query: { overdue: '1' } }}
+            href={{ pathname: '/tasks', query: { range: 'overdue' } }}
             icon={<AlertTriangle className="h-5 w-5" />}
             label="Workflow-Aufgaben überfällig"
             value={m.tasks.overdue}

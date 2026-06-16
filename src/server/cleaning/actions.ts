@@ -340,7 +340,8 @@ const createCleaningSchema = z.object({
 export async function createCleaningTask(
   formData: FormData,
 ): Promise<{ ok: boolean; error?: string; taskId?: string }> {
-  await requireRole(['admin', 'office']);
+  // Mireme (cleaning) darf Reinigungsauftraege selbst erfassen (Phase 15)
+  await requireRole(['admin', 'office', 'cleaning']);
   const raw: Record<string, unknown> = Object.fromEntries(formData.entries());
   for (const k of Object.keys(raw)) if (raw[k] === '') delete raw[k];
   const parsed = createCleaningSchema.safeParse(raw);
