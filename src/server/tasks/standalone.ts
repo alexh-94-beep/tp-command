@@ -12,7 +12,7 @@ const createSchema = z.object({
   title: z.string().min(1, 'Titel fehlt'),
   description: z.string().optional(),
   category: z
-    .enum(['repair', 'office', 'inspection', 'other'])
+    .enum(['repair', 'office', 'inspection', 'damage_report', 'lift_reservation', 'other'])
     .default('other'),
   priority: z.enum(['low', 'normal', 'high', 'urgent']).default('normal'),
   apartment_id: z.string().uuid().optional(),
@@ -24,7 +24,8 @@ const createSchema = z.object({
 export async function createStandaloneTask(
   formData: FormData,
 ): Promise<{ ok: boolean; error?: string; taskId?: string }> {
-  await requireRole(['admin', 'office']);
+  // Phase 15: Mireme (cleaning) darf Aufgaben aus Telefon-Annahme erfassen
+  await requireRole(['admin', 'office', 'cleaning']);
   const user = await getCurrentUser();
   const raw: Record<string, unknown> = Object.fromEntries(formData.entries());
   for (const k of Object.keys(raw)) if (raw[k] === '') delete raw[k];
@@ -63,7 +64,9 @@ const updateSchema = z.object({
   task_id: z.string().uuid(),
   title: z.string().min(1).optional(),
   description: z.string().optional(),
-  category: z.enum(['repair', 'office', 'inspection', 'other']).optional(),
+  category: z
+    .enum(['repair', 'office', 'inspection', 'damage_report', 'lift_reservation', 'other'])
+    .optional(),
   priority: z.enum(['low', 'normal', 'high', 'urgent']).optional(),
   apartment_id: z.string().uuid().optional(),
   assignee_id: z.string().uuid().optional(),
