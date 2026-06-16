@@ -2284,7 +2284,13 @@ export type Database = {
         | "EU"
         | "other"
         | "none"
-      standalone_task_category: "repair" | "office" | "inspection" | "other"
+      standalone_task_category:
+        | "repair"
+        | "office"
+        | "inspection"
+        | "other"
+        | "damage_report"
+        | "lift_reservation"
       standalone_task_priority: "low" | "normal" | "high" | "urgent"
       standalone_task_status: "open" | "in_progress" | "done" | "cancelled"
       sub_source: "cityus" | "other"
@@ -3021,7 +3027,14 @@ export const Constants = {
         "other",
         "none",
       ],
-      standalone_task_category: ["repair", "office", "inspection", "other"],
+      standalone_task_category: [
+        "repair",
+        "office",
+        "inspection",
+        "other",
+        "damage_report",
+        "lift_reservation",
+      ],
       standalone_task_priority: ["low", "normal", "high", "urgent"],
       standalone_task_status: ["open", "in_progress", "done", "cancelled"],
       sub_source: ["cityus", "other"],

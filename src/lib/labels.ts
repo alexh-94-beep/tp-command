@@ -181,6 +181,8 @@ export const standaloneTaskCategoryLabel: Record<StandaloneTaskCategory, string>
   repair: 'Reparatur',
   office: 'Office-Todo',
   inspection: 'Inspektion',
+  damage_report: 'Schadensmeldung',
+  lift_reservation: 'Liftreservation',
   other: 'Sonstige',
 };
 

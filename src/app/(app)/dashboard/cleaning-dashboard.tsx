@@ -27,6 +27,7 @@ import { Button } from '@/components/ui/button';
 import { addDaysIso, formatDate, formatDateLong, todayIso } from '@/lib/dates';
 import { rentalTypeLabel } from '@/lib/labels';
 import type { AppUser } from '@/lib/auth/session';
+import NewStandaloneTaskButton from './new-standalone-task-button';
 
 export default async function CleaningDashboard({ me }: { me: AppUser }) {
   const supabase = await createSupabaseServerClient();
@@ -112,6 +113,26 @@ export default async function CleaningDashboard({ me }: { me: AppUser }) {
     .order('start_date', { ascending: true })
     .limit(20);
 
+  // Stammdaten fuer den "Aufgabe erfassen"-Wizard (Telefon-Annahme)
+  const [{ data: aptOpts }, { data: userOpts }] = await Promise.all([
+    supabase
+      .from('apartments')
+      .select('id, number')
+      .neq('ownership', 'sold_external')
+      .order('number'),
+    supabase
+      .from('users')
+      .select('id, full_name, role')
+      .eq('is_active', true)
+      .order('full_name'),
+  ]);
+  const apartments = (aptOpts ?? []).map((a) => ({ id: a.id, number: a.number }));
+  const usersForAssign = (userOpts ?? []).map((u) => ({
+    id: u.id,
+    full_name: u.full_name,
+    role: u.role,
+  }));
+
   const cleaningsToday = cleanOpenToday.count ?? 0;
   const cleaningsOverdue = cleanOverdueAll.count ?? 0;
   const myTasks = [
@@ -159,6 +180,11 @@ export default async function CleaningDashboard({ me }: { me: AppUser }) {
                 Alle Reinigungen
               </Button>
             </Link>
+            <NewStandaloneTaskButton
+              apartments={apartments}
+              users={usersForAssign}
+              label="Aufgabe erfassen"
+            />
             <Link href="/cleaning?range=today">
               <Button>
                 <Plus className="h-4 w-4" />
