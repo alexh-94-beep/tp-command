@@ -92,6 +92,12 @@ export type ExternalOwnerInsert = Tables['external_owners']['Insert'];
 export type ExternalApartment = Tables['external_apartments']['Row'];
 export type ExternalApartmentInsert = Tables['external_apartments']['Insert'];
 
+// 13.6: Schaeden pro Wohnung (eigene Historie, mehrere parallel)
+export type ApartmentDamage = Tables['apartment_damages']['Row'];
+export type ApartmentDamageInsert = Tables['apartment_damages']['Insert'];
+export type ApartmentDamageSeverity = Enums['apartment_damage_severity'];
+export type ApartmentDamageStatus = Enums['apartment_damage_status'];
+
 // ── Zahlungen (Phase 8) ────────────────────────────────────────────────
 // BookingPaymentStatus ist oben bei Bookings bereits exportiert.
 export type Payment = Tables['payments']['Row'];

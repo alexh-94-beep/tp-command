@@ -3,6 +3,8 @@
  * über die ganze App sind.
  */
 import type {
+  ApartmentDamageSeverity,
+  ApartmentDamageStatus,
   ApartmentOwnership,
   ApartmentStatus,
   ApartmentType,
@@ -213,4 +215,40 @@ export const standaloneTaskPriorityTone: Record<
   normal: 'neutral',
   high: 'warning',
   urgent: 'danger',
+};
+
+// ── Schaeden ───────────────────────────────────────────────────────────
+
+export const apartmentDamageSeverityLabel: Record<ApartmentDamageSeverity, string> = {
+  minor: 'Klein',
+  normal: 'Normal',
+  major: 'Gross',
+  urgent: 'Dringend',
+};
+
+export const apartmentDamageSeverityTone: Record<
+  ApartmentDamageSeverity,
+  'neutral' | 'success' | 'warning' | 'danger' | 'info'
+> = {
+  minor: 'neutral',
+  normal: 'info',
+  major: 'warning',
+  urgent: 'danger',
+};
+
+export const apartmentDamageStatusLabel: Record<ApartmentDamageStatus, string> = {
+  open: 'Offen',
+  in_progress: 'In Arbeit',
+  resolved: 'Erledigt',
+  wont_fix: 'Nicht behoben',
+};
+
+export const apartmentDamageStatusTone: Record<
+  ApartmentDamageStatus,
+  'neutral' | 'success' | 'warning' | 'danger' | 'info'
+> = {
+  open: 'warning',
+  in_progress: 'info',
+  resolved: 'success',
+  wont_fix: 'neutral',
 };

@@ -384,6 +384,111 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  // ── Schäden-Register (Phase 13.6) ────────────────────────────────────
+  //
+  // Zusätzlich zu den Inspektionen aus cleaning_tasks holen wir die
+  // separat erfassten Schäden aus apartment_damages und gruppieren
+  // pro Wohnung. Im Bereich [fromIso, toIso] wird der reported_at
+  // verglichen — Schäden mit Status open/in_progress werden immer
+  // angezeigt, auch wenn das reported_at vor dem Bereich liegt
+  // (das ist der Zweck einer offenen Liste).
+  const { data: regDamages } = await supabase
+    .from('apartment_damages')
+    .select(
+      'id, description, severity, status, photo_url, notes, reported_at, resolved_at, resolution_notes, apartment:apartments(number, building, type), external_apartment:external_apartments(label, contact_name), reporter:users!apartment_damages_reported_by_fkey(full_name)',
+    )
+    .or(
+      `and(status.in.(open,in_progress)),and(reported_at.gte.${fromIso}T00:00:00,reported_at.lte.${toIso}T23:59:59)`,
+    )
+    .order('reported_at', { ascending: false });
+
+  const damageGroups = new Map<
+    string,
+    {
+      label: string;
+      info: string;
+      damages: typeof regDamages;
+    }
+  >();
+  for (const d of regDamages ?? []) {
+    const apt = d.apartment;
+    const ext = d.external_apartment;
+    const label = apt?.number ?? ext?.label ?? '–';
+    const info = apt
+      ? [apt.building && `Haus ${apt.building}`, apt.type].filter(Boolean).join(' · ')
+      : ext?.contact_name
+        ? `Eigentümer: ${ext.contact_name}`
+        : '';
+    const key = label;
+    if (!damageGroups.has(key)) {
+      damageGroups.set(key, { label, info, damages: [] });
+    }
+    damageGroups.get(key)!.damages!.push(d);
+  }
+
+  if (damageGroups.size > 0) {
+    state = ensureSpace(state, 30);
+    state = drawLine(state);
+    state = drawHeading(state, 'Schäden-Register', 16);
+    state = drawWrappedText(
+      state,
+      `${regDamages?.length ?? 0} Schadenseintrag/e (separat erfasst, unabhängig von Reinigung).`,
+      10,
+    );
+    for (const [, grp] of damageGroups) {
+      state = ensureSpace(state, 24);
+      state = drawHeading(state, `Wohnung ${grp.label}`, 13);
+      if (grp.info) state = drawLabelValue(state, 'Info', grp.info);
+      for (const d of grp.damages ?? []) {
+        state = ensureSpace(state, 20);
+        const severityLabel: Record<string, string> = {
+          minor: 'Klein',
+          normal: 'Normal',
+          major: 'Gross',
+          urgent: 'Dringend',
+        };
+        const statusLabel: Record<string, string> = {
+          open: 'Offen',
+          in_progress: 'In Arbeit',
+          resolved: 'Erledigt',
+          wont_fix: 'Nicht behoben',
+        };
+        const sevColor: Record<string, [number, number, number]> = {
+          minor: [0.5, 0.5, 0.5],
+          normal: [0.2, 0.4, 0.65],
+          major: [0.78, 0.45, 0.05],
+          urgent: [0.78, 0.15, 0.15],
+        };
+        const headLabel = `[${severityLabel[d.severity] ?? d.severity}] ${statusLabel[d.status] ?? d.status}`;
+        state.page.drawText(headLabel, {
+          x: MARGIN,
+          y: state.y - 10,
+          size: 10,
+          font: fontBold,
+          color: rgb(...(sevColor[d.severity] ?? [0.2, 0.2, 0.2])),
+        });
+        const dateLab = `gemeldet ${dateLabel(d.reported_at.slice(0, 10))}${d.reporter?.full_name ? ' · ' + d.reporter.full_name : ''}`;
+        state.page.drawText(dateLab, {
+          x: MARGIN + 200,
+          y: state.y - 10,
+          size: 9,
+          font: fontRegular,
+          color: rgb(0.45, 0.45, 0.45),
+        });
+        state = { ...state, y: state.y - 14 };
+        state = drawWrappedText(state, d.description, 10);
+        if (d.notes) state = drawWrappedText(state, d.notes, 9);
+        if (d.resolution_notes) {
+          state = drawWrappedText(
+            state,
+            `Lösung: ${d.resolution_notes}`,
+            9,
+          );
+        }
+      }
+    }
+  }
+
   const pages = doc.getPages();
   pages.forEach((p, i) => {
     const label = `Seite ${i + 1} von ${pages.length}`;

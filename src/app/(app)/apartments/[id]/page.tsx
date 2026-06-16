@@ -16,6 +16,9 @@ import {
   ownershipTone,
   rentalTypeLabel,
 } from '@/lib/labels';
+import ApartmentDamagesSection, {
+  type DamageRow,
+} from './damages-section';
 
 export const metadata = { title: 'Wohnung' };
 
@@ -43,6 +46,27 @@ export default async function ApartmentDetailPage({
     .single();
 
   if (!apartment) notFound();
+
+  // Schäden laden (Phase 13.6)
+  const { data: rawDamages } = await supabase
+    .from('apartment_damages')
+    .select(
+      'id, description, severity, status, notes, reported_at, resolved_at, resolution_notes, reporter:users!apartment_damages_reported_by_fkey(full_name), resolver:users!apartment_damages_resolved_by_fkey(full_name)',
+    )
+    .eq('apartment_id', id)
+    .order('reported_at', { ascending: false });
+  const damages: DamageRow[] = (rawDamages ?? []).map((d) => ({
+    id: d.id,
+    description: d.description,
+    severity: d.severity,
+    status: d.status,
+    notes: d.notes,
+    reported_at: d.reported_at,
+    reported_by_name: d.reporter?.full_name ?? null,
+    resolved_at: d.resolved_at,
+    resolved_by_name: d.resolver?.full_name ?? null,
+    resolution_notes: d.resolution_notes,
+  }));
 
   return (
     <div className="space-y-6">
@@ -171,6 +195,8 @@ export default async function ApartmentDetailPage({
           </Card>
         )}
       </div>
+
+      <ApartmentDamagesSection apartmentId={apartment.id} damages={damages} />
     </div>
   );
 }

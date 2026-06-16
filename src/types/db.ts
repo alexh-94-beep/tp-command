@@ -91,6 +91,106 @@ export type Database = {
           },
         ]
       }
+      apartment_damages: {
+        Row: {
+          apartment_id: string | null
+          cleaning_task_id: string | null
+          created_at: string
+          description: string
+          external_apartment_id: string | null
+          id: string
+          notes: string | null
+          photo_url: string | null
+          reported_at: string
+          reported_by: string | null
+          resolution_notes: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          severity: Database["public"]["Enums"]["apartment_damage_severity"]
+          status: Database["public"]["Enums"]["apartment_damage_status"]
+          updated_at: string
+        }
+        Insert: {
+          apartment_id?: string | null
+          cleaning_task_id?: string | null
+          created_at?: string
+          description: string
+          external_apartment_id?: string | null
+          id?: string
+          notes?: string | null
+          photo_url?: string | null
+          reported_at?: string
+          reported_by?: string | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: Database["public"]["Enums"]["apartment_damage_severity"]
+          status?: Database["public"]["Enums"]["apartment_damage_status"]
+          updated_at?: string
+        }
+        Update: {
+          apartment_id?: string | null
+          cleaning_task_id?: string | null
+          created_at?: string
+          description?: string
+          external_apartment_id?: string | null
+          id?: string
+          notes?: string | null
+          photo_url?: string | null
+          reported_at?: string
+          reported_by?: string | null
+          resolution_notes?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          severity?: Database["public"]["Enums"]["apartment_damage_severity"]
+          status?: Database["public"]["Enums"]["apartment_damage_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "apartment_damages_apartment_id_fkey"
+            columns: ["apartment_id"]
+            isOneToOne: false
+            referencedRelation: "apartments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "apartment_damages_apartment_id_fkey"
+            columns: ["apartment_id"]
+            isOneToOne: false
+            referencedRelation: "view_apartment_status_today"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "apartment_damages_cleaning_task_id_fkey"
+            columns: ["cleaning_task_id"]
+            isOneToOne: false
+            referencedRelation: "cleaning_tasks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "apartment_damages_external_apartment_id_fkey"
+            columns: ["external_apartment_id"]
+            isOneToOne: false
+            referencedRelation: "external_apartments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "apartment_damages_reported_by_fkey"
+            columns: ["reported_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "apartment_damages_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       apartments: {
         Row: {
           allowed_rental_types: Database["public"]["Enums"]["rental_type"][]
@@ -1953,6 +2053,8 @@ export type Database = {
         | "key_at_reception"
         | "key_box"
         | "other"
+      apartment_damage_severity: "minor" | "normal" | "major" | "urgent"
+      apartment_damage_status: "open" | "in_progress" | "resolved" | "wont_fix"
       apartment_ownership: "own" | "sold_managed" | "sold_external"
       apartment_status:
         | "available"
@@ -2671,6 +2773,8 @@ export const Constants = {
         "key_box",
         "other",
       ],
+      apartment_damage_severity: ["minor", "normal", "major", "urgent"],
+      apartment_damage_status: ["open", "in_progress", "resolved", "wont_fix"],
       apartment_ownership: ["own", "sold_managed", "sold_external"],
       apartment_status: [
         "available",
