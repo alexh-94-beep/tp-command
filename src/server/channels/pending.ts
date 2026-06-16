@@ -279,7 +279,7 @@ export async function assignReservation(
   // zurueck, damit Office das nachziehen kann.
   let warning: string | undefined;
   try {
-    await instantiateBookingTasks(supabase, booking.id);
+    await instantiateBookingTasks(supabase, booking.id, user?.id);
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
     console.error('[assignReservation] instantiateBookingTasks failed:', msg);

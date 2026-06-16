@@ -55,7 +55,7 @@ export interface CreateBookingResult {
 }
 
 export async function createBooking(formData: FormData): Promise<CreateBookingResult> {
-  await requireRole(['admin', 'office']);
+  const user = await requireRole(['admin', 'office']);
 
   const raw: Record<string, unknown> = Object.fromEntries(formData.entries());
   raw.parking_included = formData.has('parking_included');
@@ -175,13 +175,24 @@ export async function createBooking(formData: FormData): Promise<CreateBookingRe
   }
 
   // Workflow-Aufgaben aus den Templates instantiieren (Phase 4)
-  await instantiateBookingTasks(supabase, booking.id);
+  // Phase 15: Ersteller wird als Default-Assignee fuer office-Tasks bevorzugt
+  await instantiateBookingTasks(supabase, booking.id, user.id);
 
   // Reinigungs-Auftrag fuer Booking-Typ direkt mit-erzeugen (Phase 5):
   // Bei Lang-/Kurzzeit folgt der Auftrag erst, wenn die Wohnungsabnahme
   // geplant/erledigt wird — Datum ist sonst undefiniert (open-end).
   if (v.rental_type === 'booking') {
     await ensureCheckoutCleaningForBooking(supabase, booking.id);
+  } else {
+    // Phase 15: Auffrischungs-Reinigung wenn Wohnung > 7 Tage leer stand
+    try {
+      const { ensureRefreshCleaningForBooking } = await import(
+        '@/services/cleaning/refresh'
+      );
+      await ensureRefreshCleaningForBooking(supabase, booking.id);
+    } catch (e) {
+      console.error('[createBooking] ensureRefreshCleaningForBooking failed:', e);
+    }
   }
 
   // Plan-Zahlungen erzeugen (Phase 8) — Depot + Erst-Miete bei long_term,
