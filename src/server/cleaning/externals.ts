@@ -168,3 +168,69 @@ export async function createOwnerWithApartment(
   revalidatePath('/settings');
   return { ok: true, ownerId: owner.id, externalApartmentId: apt.id };
 }
+
+// ── updateExternalOwner (Settings-Page) ───────────────────────────────
+
+const updateOwnerSchema = z.object({
+  owner_id: z.string().uuid(),
+  name: z.string().min(1, 'Name fehlt').optional(),
+  contact_phone: z.string().optional(),
+  contact_email: z.string().email().optional().or(z.literal('')),
+  address: z.string().optional(),
+  notes: z.string().optional(),
+});
+
+export async function updateExternalOwner(
+  formData: FormData,
+): Promise<{ ok: boolean; error?: string }> {
+  await requireRole(['admin', 'office']);
+  const raw: Record<string, unknown> = Object.fromEntries(formData.entries());
+  for (const k of Object.keys(raw)) if (raw[k] === '') delete raw[k];
+  const parsed = updateOwnerSchema.safeParse(raw);
+  if (!parsed.success) return { ok: false, error: 'Ungueltige Eingabe' };
+  const { owner_id, ...patch } = parsed.data;
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase
+    .from('external_owners')
+    .update(patch)
+    .eq('id', owner_id);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath('/settings/external-owners');
+  revalidatePath('/cleaning');
+  return { ok: true };
+}
+
+// ── setExternalOwnerActive (Toggle) ───────────────────────────────────
+
+export async function setExternalOwnerActive(
+  ownerId: string,
+  isActive: boolean,
+): Promise<{ ok: boolean; error?: string }> {
+  await requireRole(['admin', 'office']);
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase
+    .from('external_owners')
+    .update({ is_active: isActive })
+    .eq('id', ownerId);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath('/settings/external-owners');
+  revalidatePath('/cleaning');
+  return { ok: true };
+}
+
+// ── deleteExternalApartment ───────────────────────────────────────────
+
+export async function deleteExternalApartment(
+  apartmentId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  await requireRole(['admin', 'office']);
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase
+    .from('external_apartments')
+    .delete()
+    .eq('id', apartmentId);
+  if (error) return { ok: false, error: error.message };
+  revalidatePath('/settings/external-owners');
+  revalidatePath('/cleaning');
+  return { ok: true };
+}

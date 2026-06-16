@@ -17,9 +17,11 @@ const RANGE_PRESETS = [
 export default function CleaningToolbar({
   canManage,
   cleaners,
+  owners,
 }: {
   canManage: boolean;
   cleaners: { id: string; full_name: string }[];
+  owners: { id: string; name: string }[];
 }) {
   const router = useRouter();
   const sp = useSearchParams();
@@ -102,6 +104,26 @@ export default function CleaningToolbar({
             {cleaners.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.full_name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {canManage && (
+        <div className="flex items-center gap-2 text-sm">
+          <label className="text-slate-500">Eigentümer</label>
+          <select
+            className={inputCls}
+            value={sp.get('owner') ?? ''}
+            onChange={(e) => nav({ owner: e.target.value })}
+          >
+            <option value="">Alle</option>
+            <option value="internal">Nur eigene</option>
+            <option value="any_external">Nur externe</option>
+            {owners.map((o) => (
+              <option key={o.id} value={o.id}>
+                {o.name}
               </option>
             ))}
           </select>

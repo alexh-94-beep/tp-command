@@ -48,6 +48,7 @@ interface SearchParams {
   status?: string;
   type?: string;
   assignee?: string;
+  owner?: string;
   range?: 'open' | 'today' | 'week' | 'all';
 }
 
@@ -95,6 +96,24 @@ export default async function CleaningPage({
   if (sp.type) query = query.eq('type', sp.type as CleaningType);
   if (sp.assignee === 'unassigned') query = query.is('staff_id', null);
   else if (sp.assignee) query = query.eq('staff_id', sp.assignee);
+
+  // Eigentümer-Filter (Phase 13e)
+  if (sp.owner === 'internal') {
+    query = query.not('apartment_id', 'is', null);
+  } else if (sp.owner === 'any_external') {
+    query = query.not('external_apartment_id', 'is', null);
+  } else if (sp.owner) {
+    // Owner-ID: nur Cleaning-Tasks dessen external_apartment einen
+    // bestimmten Owner hat. PostgREST filter via inner join.
+    const { data: aptIds } = await supabase
+      .from('external_apartments')
+      .select('id')
+      .eq('owner_id', sp.owner);
+    const ids = (aptIds ?? []).map((a) => a.id);
+    query = ids.length
+      ? query.in('external_apartment_id', ids)
+      : query.eq('id', '00000000-0000-0000-0000-000000000000'); // leeres Resultat
+  }
 
   const { data: tasks } = await query;
 
@@ -189,7 +208,11 @@ export default async function CleaningPage({
         }
       />
 
-      <CleaningToolbar canManage={canManage} cleaners={cleaners ?? []} />
+      <CleaningToolbar
+        canManage={canManage}
+        cleaners={cleaners ?? []}
+        owners={externalOwners.map((o) => ({ id: o.id, name: o.name }))}
+      />
 
       {(tasks ?? []).length === 0 ? (
         <div className="rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center text-sm text-slate-500">
