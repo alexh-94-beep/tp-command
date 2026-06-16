@@ -115,7 +115,7 @@ export async function getDashboardMetrics(
 
   const [
     apartments,
-    occupiedBookings,
+    apartmentsOccupied,
     monthBookings,
     inToday,
     outToday,
@@ -134,13 +134,16 @@ export async function getDashboardMetrics(
       .from('apartments')
       .select('*', { count: 'exact', head: true })
       .neq('ownership', 'sold_external'),
-    // 2. Aktuell belegte Buchungen (start <= heute < end)
+    // 2. Aktuell belegte Wohnungen — Quelle ist der Stammdaten-Status
+    //    apartments.status='occupied'. Langzeit-Mietverhaeltnisse werden
+    //    primaer ueber den Wohnungs-Status gepflegt und sind nicht zwingend
+    //    als bookings-Eintrag vorhanden. Buchungen sind ergaenzend fuer
+    //    Kurzzeit/Booking-Pool und fuer Auslastungs-Berechnung.
     supabase
-      .from('bookings')
-      .select('apartment_id, start_date, end_date')
-      .in('status', ['planned', 'active'])
-      .lte('start_date', today)
-      .gt('end_date', today),
+      .from('apartments')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'occupied')
+      .neq('ownership', 'sold_external'),
     // 3. Buchungen, die in den aktuellen Monat reinfallen (Auslastungsberechnung)
     supabase
       .from('bookings')
@@ -220,9 +223,8 @@ export async function getDashboardMetrics(
 
 
   const total = apartments.count ?? 0;
-  // occupied = distinct apartment_ids aus occupiedBookings
-  const occupiedSet = new Set((occupiedBookings.data ?? []).map((b) => b.apartment_id));
-  const occupied = occupiedSet.size;
+  // occupied = COUNT(apartments WHERE status='occupied') — Stammdaten sind Quelle
+  const occupied = apartmentsOccupied.count ?? 0;
 
   // Zahlungen aggregieren (Phase 8): kein DB-side SUM, weil PostgREST das
   // ungemuetlich macht; bei wenigen offenen Zahlungen ist clientseitig ok.
