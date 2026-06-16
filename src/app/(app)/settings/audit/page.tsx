@@ -14,6 +14,7 @@ export const dynamic = 'force-dynamic';
 
 const ENTITY_LABEL: Record<AuditEntity, string> = {
   booking: 'Buchung',
+  booking_task: 'Workflow-Aufgabe',
   cleaning_task: 'Reinigung',
   standalone_task: 'Aufgabe',
   debitor_invoice: 'Rechnung',
@@ -26,6 +27,7 @@ const ENTITY_LABEL: Record<AuditEntity, string> = {
 
 const ENTITY_HREF: Record<AuditEntity, ((id: string) => string) | null> = {
   booking: (id) => `/bookings/${id}`,
+  booking_task: null, // direkt-Link ist Booking, nicht task — UI fokussiert auf Booking
   cleaning_task: (id) => `/cleaning/${id}`,
   standalone_task: (id) => `/tasks/${id}`,
   debitor_invoice: (id) => `/invoices/${id}`,

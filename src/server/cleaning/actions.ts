@@ -140,13 +140,23 @@ export async function clearHandoverPlan(bookingId: string) {
 // ── Reinigungs-Auftrag bearbeiten ────────────────────────────────────
 
 export async function assignCleaningTask(taskId: string, userId: string | null) {
-  await requireRole(['admin', 'office']);
+  const actor = await requireRole(['admin', 'office']);
   const supabase = await createSupabaseServerClient();
   const { error } = await supabase
     .from('cleaning_tasks')
     .update({ assigned_to: userId })
     .eq('id', taskId);
   if (error) return { ok: false, error: error.message };
+  void (async () => {
+    const { logAudit } = await import('@/services/audit/log');
+    await logAudit(supabase, {
+      actorId: actor.id,
+      entity: 'cleaning_task',
+      entityId: taskId,
+      action: 'assigned',
+      diff: { assigned_to: userId },
+    });
+  })();
   revalidatePath('/cleaning');
   revalidatePath(`/cleaning/${taskId}`);
   return { ok: true };
@@ -353,7 +363,7 @@ export async function createCleaningTask(
   formData: FormData,
 ): Promise<{ ok: boolean; error?: string; taskId?: string }> {
   // Mireme (cleaning) darf Reinigungsauftraege selbst erfassen (Phase 15)
-  await requireRole(['admin', 'office', 'cleaning']);
+  const user = await requireRole(['admin', 'office', 'cleaning']);
   const raw: Record<string, unknown> = Object.fromEntries(formData.entries());
   for (const k of Object.keys(raw)) if (raw[k] === '') delete raw[k];
   const parsed = createCleaningSchema.safeParse(raw);
@@ -403,6 +413,24 @@ export async function createCleaningTask(
     .single();
   if (error) return { ok: false, error: error.message };
 
+  void (async () => {
+    const { logAudit } = await import('@/services/audit/log');
+    await logAudit(supabase, {
+      actorId: user.id,
+      entity: 'cleaning_task',
+      entityId: created.id,
+      action: 'created',
+      diff: {
+        scheduled_date: v.scheduled_date,
+        type: v.type,
+        priority: v.priority,
+        apartment_id: v.apartment_id,
+        external_apartment_id: v.external_apartment_id,
+        source: v.external_apartment_id ? 'external_owner' : 'manual',
+      },
+    });
+  })();
+
   revalidatePath('/cleaning');
   revalidatePath('/cleaning/daily');
   revalidatePath('/cleaning/weekly');
@@ -446,7 +474,7 @@ const updateCleaningSchema = z.object({
 export async function updateCleaningTask(
   formData: FormData,
 ): Promise<{ ok: boolean; error?: string }> {
-  await requireRole(['admin', 'office', 'cleaning']);
+  const user = await requireRole(['admin', 'office', 'cleaning']);
   const raw: Record<string, unknown> = Object.fromEntries(formData.entries());
   // Leere Strings -> Null (damit DB-NULL gesetzt wird statt empty-string)
   for (const k of Object.keys(raw)) if (raw[k] === '') raw[k] = null;
@@ -470,6 +498,17 @@ export async function updateCleaningTask(
 
   const { error } = await supabase.from('cleaning_tasks').update(patch).eq('id', task_id);
   if (error) return { ok: false, error: error.message };
+
+  void (async () => {
+    const { logAudit } = await import('@/services/audit/log');
+    await logAudit(supabase, {
+      actorId: user.id,
+      entity: 'cleaning_task',
+      entityId: task_id,
+      action: 'updated',
+      diff: patch as Record<string, unknown>,
+    });
+  })();
 
   revalidatePath('/cleaning');
   revalidatePath(`/cleaning/${task_id}`);
@@ -538,7 +577,7 @@ export async function cancelCleaningTask(
 export async function uncancelCleaningTask(
   taskId: string,
 ): Promise<{ ok: boolean; error?: string }> {
-  await requireRole(['admin', 'office']);
+  const user = await requireRole(['admin', 'office']);
   const supabase = await createSupabaseServerClient();
   const { error } = await supabase
     .from('cleaning_tasks')
@@ -551,6 +590,18 @@ export async function uncancelCleaningTask(
     .eq('id', taskId)
     .eq('status', 'cancelled');
   if (error) return { ok: false, error: error.message };
+
+  void (async () => {
+    const { logAudit } = await import('@/services/audit/log');
+    await logAudit(supabase, {
+      actorId: user.id,
+      entity: 'cleaning_task',
+      entityId: taskId,
+      action: 'status_changed',
+      note: 'Storno zurückgenommen',
+      diff: { status: { after: 'open' } },
+    });
+  })();
 
   revalidatePath('/cleaning');
   revalidatePath(`/cleaning/${taskId}`);

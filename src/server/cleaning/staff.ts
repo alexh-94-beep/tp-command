@@ -71,13 +71,23 @@ export async function setStaffActive(staffId: string, active: boolean) {
 
 export async function assignTaskToStaff(taskId: string, staffId: string | null) {
   // Phase 15: Mireme weist Reinigerinnen zu
-  await requireRole(['admin', 'office', 'cleaning']);
+  const actor = await requireRole(['admin', 'office', 'cleaning']);
   const supabase = await createSupabaseServerClient();
   const { error } = await supabase
     .from('cleaning_tasks')
     .update({ staff_id: staffId })
     .eq('id', taskId);
   if (error) return { ok: false, error: error.message };
+  void (async () => {
+    const { logAudit } = await import('@/services/audit/log');
+    await logAudit(supabase, {
+      actorId: actor.id,
+      entity: 'cleaning_task',
+      entityId: taskId,
+      action: 'assigned',
+      diff: { staff_id: staffId },
+    });
+  })();
   revalidatePath('/cleaning');
   revalidatePath('/cleaning/daily');
   revalidatePath(`/cleaning/${taskId}`);
@@ -91,7 +101,7 @@ export async function moveCleaningTask(input: {
   scheduledDate: string;
 }) {
   // Phase 15: Mireme bewegt Tasks im Wochenplan
-  await requireRole(['admin', 'office', 'cleaning']);
+  const actor = await requireRole(['admin', 'office', 'cleaning']);
   const supabase = await createSupabaseServerClient();
   const { error } = await supabase
     .from('cleaning_tasks')
@@ -101,6 +111,16 @@ export async function moveCleaningTask(input: {
     })
     .eq('id', input.taskId);
   if (error) return { ok: false, error: error.message };
+  void (async () => {
+    const { logAudit } = await import('@/services/audit/log');
+    await logAudit(supabase, {
+      actorId: actor.id,
+      entity: 'cleaning_task',
+      entityId: input.taskId,
+      action: 'assigned',
+      diff: { staff_id: input.staffId, scheduled_date: input.scheduledDate },
+    });
+  })();
   revalidatePath('/cleaning');
   revalidatePath('/cleaning/daily');
   revalidatePath(`/cleaning/${input.taskId}`);
