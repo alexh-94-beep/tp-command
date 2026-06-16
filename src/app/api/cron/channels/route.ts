@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { isAuthorizedCron } from '@/lib/auth/cron';
 
 /**
  * Täglicher Channel-iCal-Sync (Booking.com u. a.).
@@ -9,10 +10,9 @@ import { NextResponse, type NextRequest } from 'next/server';
  * (iCal-Pull pro Wohnung) und nutzt dann den Service-Role-Client.
  */
 export function GET(request: NextRequest) {
-  const expected = process.env.CRON_SECRET;
-  const provided = request.headers.get('authorization');
-
-  if (!expected || provided !== `Bearer ${expected}`) {
+  if (
+    !isAuthorizedCron(request.headers.get('authorization'), process.env.CRON_SECRET)
+  ) {
     return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 });
   }
 
