@@ -871,6 +871,9 @@ export type Database = {
           apartment_id: string | null
           assigned_to: string | null
           booking_id: string | null
+          cancellation_reason: string | null
+          cancelled_at: string | null
+          cancelled_by: string | null
           completed_at: string | null
           created_at: string
           damage_description: string | null
@@ -904,6 +907,9 @@ export type Database = {
           apartment_id?: string | null
           assigned_to?: string | null
           booking_id?: string | null
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           completed_at?: string | null
           created_at?: string
           damage_description?: string | null
@@ -937,6 +943,9 @@ export type Database = {
           apartment_id?: string | null
           assigned_to?: string | null
           booking_id?: string | null
+          cancellation_reason?: string | null
+          cancelled_at?: string | null
+          cancelled_by?: string | null
           completed_at?: string | null
           created_at?: string
           damage_description?: string | null
@@ -990,6 +999,13 @@ export type Database = {
             columns: ["booking_id"]
             isOneToOne: false
             referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cleaning_tasks_cancelled_by_fkey"
+            columns: ["cancelled_by"]
+            isOneToOne: false
+            referencedRelation: "users"
             referencedColumns: ["id"]
           },
           {
@@ -2184,7 +2200,12 @@ export type Database = {
         | "unknown"
       cleaning_frequency: "weekly" | "biweekly"
       cleaning_priority: "low" | "normal" | "high" | "urgent"
-      cleaning_status: "open" | "in_progress" | "done" | "quality_checked"
+      cleaning_status:
+        | "open"
+        | "in_progress"
+        | "done"
+        | "quality_checked"
+        | "cancelled"
       cleaning_type:
         | "checkout"
         | "pre_checkin"
@@ -2907,7 +2928,13 @@ export const Constants = {
       ],
       cleaning_frequency: ["weekly", "biweekly"],
       cleaning_priority: ["low", "normal", "high", "urgent"],
-      cleaning_status: ["open", "in_progress", "done", "quality_checked"],
+      cleaning_status: [
+        "open",
+        "in_progress",
+        "done",
+        "quality_checked",
+        "cancelled",
+      ],
       cleaning_type: [
         "checkout",
         "pre_checkin",

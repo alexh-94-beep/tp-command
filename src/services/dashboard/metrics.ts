@@ -178,7 +178,7 @@ export async function getDashboardMetrics(
       .gt('end_date', today)
       .lte('end_date', next7)
       .neq('end_date', OPEN_END_DATE),
-    // 8. Offene Reinigungen heute
+    // 8. Offene Reinigungen heute (cancelled wird via status-IN-Filter ausgeschlossen)
     supabase
       .from('cleaning_tasks')
       .select('*', { count: 'exact', head: true })
@@ -191,7 +191,7 @@ export async function getDashboardMetrics(
       .in('status', ['open', 'in_progress'])
       .gte('scheduled_date', today)
       .lte('scheduled_date', next7),
-    // 10. Ueberfaellige Reinigungen (scheduled < heute, noch offen)
+    // 10. Ueberfaellige Reinigungen (scheduled < heute, noch offen — kein cancelled)
     supabase
       .from('cleaning_tasks')
       .select('*', { count: 'exact', head: true })

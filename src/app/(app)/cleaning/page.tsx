@@ -16,14 +16,16 @@ import CleaningToolbar from './cleaning-toolbar';
 import NewCleaningButton from './new-cleaning-button';
 import CityusImportButton from './cityus-import-button';
 import DamageReportButton from './damage-report-button';
+import CleaningRow from './cleaning-row';
 
 export const metadata = { title: 'Reinigung' };
 
-const statusTone: Record<CleaningStatus, 'neutral' | 'warning' | 'info' | 'success'> = {
+const statusTone: Record<CleaningStatus, 'neutral' | 'warning' | 'info' | 'success' | 'danger'> = {
   open: 'warning',
   in_progress: 'info',
   done: 'success',
   quality_checked: 'success',
+  cancelled: 'danger',
 };
 
 const priorityTone: Record<CleaningPriority, 'neutral' | 'warning' | 'danger' | 'info'> = {
@@ -87,12 +89,17 @@ export default async function CleaningPage({
     .order('scheduled_date', { ascending: true })
     .order('scheduled_time', { ascending: true, nullsFirst: false });
 
-  if (range === 'today') query = query.eq('scheduled_date', today);
+  if (range === 'today')
+    query = query.eq('scheduled_date', today).neq('status', 'cancelled');
   else if (range === 'week')
-    query = query.gte('scheduled_date', today).lte('scheduled_date', in7Iso);
+    query = query
+      .gte('scheduled_date', today)
+      .lte('scheduled_date', in7Iso)
+      .neq('status', 'cancelled');
   else if (range === 'overdue')
     query = query.in('status', ['open', 'in_progress']).lt('scheduled_date', today);
   else if (range === 'open') query = query.in('status', ['open', 'in_progress']);
+  // range='all' zeigt alles inkl. cancelled — mit Storno-Badge
 
   if (sp.status) query = query.eq('status', sp.status as CleaningStatus);
   if (sp.type) query = query.eq('type', sp.type as CleaningType);
@@ -274,12 +281,11 @@ export default async function CleaningPage({
                 <th className="px-4 py-3">Priorität</th>
                 <th className="px-4 py-3">Zugewiesen</th>
                 <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {(tasks ?? []).map((t) => (
-                <tr key={t.id} className="hover:bg-slate-50">
+                <CleaningRow key={t.id} href={`/cleaning/${t.id}`}>
                   <td className="px-4 py-3 whitespace-nowrap">
                     {formatDate(t.scheduled_date)}
                     {t.scheduled_time && (
@@ -304,15 +310,7 @@ export default async function CleaningPage({
                   <td className="px-4 py-3 whitespace-nowrap">
                     <Badge tone={statusTone[t.status]}>{cleaningStatusLabel[t.status]}</Badge>
                   </td>
-                  <td className="px-4 py-3 text-right whitespace-nowrap">
-                    <Link
-                      href={`/cleaning/${t.id}`}
-                      className="text-xs font-medium text-slate-700 hover:underline"
-                    >
-                      Öffnen →
-                    </Link>
-                  </td>
-                </tr>
+                </CleaningRow>
               ))}
             </tbody>
           </table>

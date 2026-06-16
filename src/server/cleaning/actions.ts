@@ -398,3 +398,137 @@ export async function createCleaningTask(
   revalidatePath(`/apartments/${v.apartment_id}`);
   return { ok: true, taskId: created.id };
 }
+
+// ── Edit: Stammdaten eines Auftrags aendern ───────────────────────────
+// Mireme (cleaning) darf eigene oder unassignierte Tasks bearbeiten
+// (RLS regelt das per "cleaning_tasks update cleaning"-Policy).
+
+const updateCleaningSchema = z.object({
+  task_id: z.string().uuid(),
+  scheduled_date: z.string().min(1).optional(),
+  scheduled_time: z.string().optional().nullable(),
+  type: z
+    .enum([
+      'checkout',
+      'pre_checkin',
+      'intermediate',
+      'special',
+      'deep_clean',
+      'inspection',
+      'weekly_clean',
+      'weekly_clean_linen',
+    ])
+    .optional(),
+  priority: z.enum(['low', 'normal', 'high', 'urgent']).optional(),
+  estimated_duration_minutes: z.coerce.number().int().positive().optional().nullable(),
+  notes: z.string().optional().nullable(),
+  linen_change: z
+    .preprocess((v) => v === '1' || v === 'on' || v === true, z.boolean())
+    .optional(),
+  time_flexible: z
+    .preprocess((v) => v === '1' || v === 'on' || v === true, z.boolean())
+    .optional(),
+  time_constraint_note: z.string().optional().nullable(),
+});
+
+export async function updateCleaningTask(
+  formData: FormData,
+): Promise<{ ok: boolean; error?: string }> {
+  await requireRole(['admin', 'office', 'cleaning']);
+  const raw: Record<string, unknown> = Object.fromEntries(formData.entries());
+  // Leere Strings -> Null (damit DB-NULL gesetzt wird statt empty-string)
+  for (const k of Object.keys(raw)) if (raw[k] === '') raw[k] = null;
+  const parsed = updateCleaningSchema.safeParse(raw);
+  if (!parsed.success) return { ok: false, error: 'Bitte Eingaben pruefen.' };
+  const { task_id, ...patch } = parsed.data;
+  if (Object.keys(patch).length === 0) return { ok: true };
+
+  const supabase = await createSupabaseServerClient();
+  // Stornierte Tasks duerfen nicht mehr editiert werden — UI blendet das aus,
+  // wir checken hier nochmal serverseitig.
+  const { data: current } = await supabase
+    .from('cleaning_tasks')
+    .select('status')
+    .eq('id', task_id)
+    .maybeSingle();
+  if (!current) return { ok: false, error: 'Auftrag nicht gefunden' };
+  if (current.status === 'cancelled') {
+    return { ok: false, error: 'Stornierte Aufträge können nicht bearbeitet werden.' };
+  }
+
+  const { error } = await supabase.from('cleaning_tasks').update(patch).eq('id', task_id);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath('/cleaning');
+  revalidatePath(`/cleaning/${task_id}`);
+  revalidatePath('/cleaning/daily');
+  revalidatePath('/cleaning/weekly');
+  revalidatePath('/dashboard');
+  return { ok: true };
+}
+
+// ── Stornieren mit Begruendung ────────────────────────────────────────
+
+export async function cancelCleaningTask(
+  taskId: string,
+  reason: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const user = await requireRole(['admin', 'office', 'cleaning']);
+  const trimmed = reason.trim();
+  if (trimmed.length < 3) {
+    return { ok: false, error: 'Bitte einen kurzen Grund (mind. 3 Zeichen) angeben.' };
+  }
+  const supabase = await createSupabaseServerClient();
+  const { data: current } = await supabase
+    .from('cleaning_tasks')
+    .select('status')
+    .eq('id', taskId)
+    .maybeSingle();
+  if (!current) return { ok: false, error: 'Auftrag nicht gefunden' };
+  if (current.status === 'done' || current.status === 'quality_checked') {
+    return { ok: false, error: 'Erledigte Aufträge können nicht storniert werden.' };
+  }
+  if (current.status === 'cancelled') return { ok: true };
+
+  const { error } = await supabase
+    .from('cleaning_tasks')
+    .update({
+      status: 'cancelled',
+      cancellation_reason: trimmed,
+      cancelled_at: new Date().toISOString(),
+      cancelled_by: user.id,
+    })
+    .eq('id', taskId);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath('/cleaning');
+  revalidatePath(`/cleaning/${taskId}`);
+  revalidatePath('/cleaning/daily');
+  revalidatePath('/cleaning/weekly');
+  revalidatePath('/dashboard');
+  return { ok: true };
+}
+
+// ── Storno zuruecknehmen (Office only) ────────────────────────────────
+
+export async function uncancelCleaningTask(
+  taskId: string,
+): Promise<{ ok: boolean; error?: string }> {
+  await requireRole(['admin', 'office']);
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase
+    .from('cleaning_tasks')
+    .update({
+      status: 'open',
+      cancellation_reason: null,
+      cancelled_at: null,
+      cancelled_by: null,
+    })
+    .eq('id', taskId)
+    .eq('status', 'cancelled');
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath('/cleaning');
+  revalidatePath(`/cleaning/${taskId}`);
+  return { ok: true };
+}
