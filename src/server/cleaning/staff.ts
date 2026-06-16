@@ -70,7 +70,8 @@ export async function setStaffActive(staffId: string, active: boolean) {
 }
 
 export async function assignTaskToStaff(taskId: string, staffId: string | null) {
-  await requireRole(['admin', 'office']);
+  // Phase 15: Mireme weist Reinigerinnen zu
+  await requireRole(['admin', 'office', 'cleaning']);
   const supabase = await createSupabaseServerClient();
   const { error } = await supabase
     .from('cleaning_tasks')
@@ -89,7 +90,8 @@ export async function moveCleaningTask(input: {
   staffId: string | null;
   scheduledDate: string;
 }) {
-  await requireRole(['admin', 'office']);
+  // Phase 15: Mireme bewegt Tasks im Wochenplan
+  await requireRole(['admin', 'office', 'cleaning']);
   const supabase = await createSupabaseServerClient();
   const { error } = await supabase
     .from('cleaning_tasks')
