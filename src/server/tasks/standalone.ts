@@ -130,6 +130,17 @@ export async function setStandaloneTaskStatus(
     .eq('id', taskId);
   if (error) return { ok: false, error: error.message };
 
+  void (async () => {
+    const { logAudit } = await import('@/services/audit/log');
+    await logAudit(supabase, {
+      actorId: user?.id ?? null,
+      entity: 'standalone_task',
+      entityId: taskId,
+      action: status === 'cancelled' ? 'cancelled' : 'status_changed',
+      diff: { status: { after: status } },
+    });
+  })();
+
   revalidatePath('/tasks');
   revalidatePath('/dashboard');
   return { ok: true };

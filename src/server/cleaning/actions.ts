@@ -175,6 +175,18 @@ export async function updateCleaningStatus(taskId: string, status: string) {
   const { error } = await supabase.from('cleaning_tasks').update(patch).eq('id', taskId);
   if (error) return { ok: false, error: error.message };
 
+  // Audit-Log (Phase 16)
+  void (async () => {
+    const { logAudit } = await import('@/services/audit/log');
+    await logAudit(supabase, {
+      actorId: user.id,
+      entity: 'cleaning_task',
+      entityId: taskId,
+      action: 'status_changed',
+      diff: { status: { after: parsed.data } },
+    });
+  })();
+
   revalidatePath('/cleaning');
   revalidatePath(`/cleaning/${taskId}`);
   revalidatePath('/dashboard');
@@ -500,6 +512,18 @@ export async function cancelCleaningTask(
     })
     .eq('id', taskId);
   if (error) return { ok: false, error: error.message };
+
+  // Audit-Log (Phase 16)
+  void (async () => {
+    const { logAudit } = await import('@/services/audit/log');
+    await logAudit(supabase, {
+      actorId: user.id,
+      entity: 'cleaning_task',
+      entityId: taskId,
+      action: 'cancelled',
+      note: trimmed,
+    });
+  })();
 
   revalidatePath('/cleaning');
   revalidatePath(`/cleaning/${taskId}`);

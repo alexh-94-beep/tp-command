@@ -44,6 +44,16 @@ export default async function SettingsPage() {
           </p>
         </Link>
 
+        <Link
+          href={{ pathname: '/settings/audit' }}
+          className="rounded-xl border border-slate-200 bg-white p-6 transition hover:border-slate-300 hover:shadow-sm"
+        >
+          <h2 className="text-base font-medium">Audit-Log</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Wer hat wann was geändert — Buchungen, Aufgaben, Rechnungen, Reinigungen.
+          </p>
+        </Link>
+
         <div
           aria-disabled
           title="Folgt in einer späteren Phase"

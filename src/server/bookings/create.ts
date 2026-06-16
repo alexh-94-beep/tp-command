@@ -174,6 +174,24 @@ export async function createBooking(formData: FormData): Promise<CreateBookingRe
     return { ok: false, error: bookingErr.message };
   }
 
+  // Audit-Log: Buchung wurde erstellt (Phase 16)
+  void (async () => {
+    const { logAudit } = await import('@/services/audit/log');
+    await logAudit(supabase, {
+      actorId: user.id,
+      entity: 'booking',
+      entityId: booking.id,
+      action: 'created',
+      diff: {
+        apartment_id: v.apartment_id,
+        rental_type: v.rental_type,
+        start_date: v.start_date,
+        end_date: v.end_date,
+        status: v.status,
+      },
+    });
+  })();
+
   // Workflow-Aufgaben aus den Templates instantiieren (Phase 4)
   // Phase 15: Ersteller wird als Default-Assignee fuer office-Tasks bevorzugt
   await instantiateBookingTasks(supabase, booking.id, user.id);
