@@ -98,6 +98,11 @@ export type ApartmentDamageInsert = Tables['apartment_damages']['Insert'];
 export type ApartmentDamageSeverity = Enums['apartment_damage_severity'];
 export type ApartmentDamageStatus = Enums['apartment_damage_status'];
 
+// Phase 14c: Debitoren-Rechnungen
+export type DebitorInvoice = Tables['debitor_invoices']['Row'];
+export type DebitorInvoiceInsert = Tables['debitor_invoices']['Insert'];
+export type DebitorInvoiceStatus = Enums['debitor_invoice_status'];
+
 // ── Zahlungen (Phase 8) ────────────────────────────────────────────────
 // BookingPaymentStatus ist oben bei Bookings bereits exportiert.
 export type Payment = Tables['payments']['Row'];

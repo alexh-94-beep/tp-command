@@ -17,6 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
   addManualTask,
+  assignBookingTask,
   deleteManualTask,
   regenerateBookingTasks,
   setTaskStatus,
@@ -39,11 +40,20 @@ export interface BookingTaskRow {
   template_task_id: string | null;
   completed_at: string | null;
   completed_by_name: string | null;
+  assigned_to: string | null;
+  assigned_to_name: string | null;
+}
+
+export interface AssigneeOption {
+  id: string;
+  full_name: string;
+  role: string;
 }
 
 interface Props {
   bookingId: string;
   tasks: BookingTaskRow[];
+  assignees?: AssigneeOption[];
 }
 
 const statusToneMap: Record<
@@ -88,7 +98,7 @@ function dueBadge(due: string | null, status: BookingTaskRow['status']) {
   return <span className="text-xs text-slate-500">{formatDate(due)}</span>;
 }
 
-export default function BookingTasksSection({ bookingId, tasks }: Props) {
+export default function BookingTasksSection({ bookingId, tasks, assignees = [] }: Props) {
   const moveIn = tasks.filter((t) => t.kind === 'move_in').sort((a, b) => a.position - b.position);
   const moveOut = tasks
     .filter((t) => t.kind === 'move_out')
@@ -105,8 +115,20 @@ export default function BookingTasksSection({ bookingId, tasks }: Props) {
         </CardTitle>
       </CardHeader>
       <CardBody className="space-y-6">
-        <TaskGroup bookingId={bookingId} kind="move_in" title="Einzug" tasks={moveIn} />
-        <TaskGroup bookingId={bookingId} kind="move_out" title="Auszug" tasks={moveOut} />
+        <TaskGroup
+          bookingId={bookingId}
+          kind="move_in"
+          title="Einzug"
+          tasks={moveIn}
+          assignees={assignees}
+        />
+        <TaskGroup
+          bookingId={bookingId}
+          kind="move_out"
+          title="Auszug"
+          tasks={moveOut}
+          assignees={assignees}
+        />
 
         {tasks.length === 0 && (
           <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-sm text-slate-500">
@@ -125,11 +147,13 @@ function TaskGroup({
   kind,
   title,
   tasks,
+  assignees,
 }: {
   bookingId: string;
   kind: 'move_in' | 'move_out';
   title: string;
   tasks: BookingTaskRow[];
+  assignees: AssigneeOption[];
 }) {
   const open = tasks.filter((t) => t.status === 'open' || t.status === 'in_progress').length;
   const total = tasks.filter((t) => t.status !== 'na').length;
@@ -165,7 +189,7 @@ function TaskGroup({
               </div>
               <ul className="mt-1 divide-y divide-slate-100">
                 {list.map((t) => (
-                  <TaskRow key={t.id} task={t} />
+                  <TaskRow key={t.id} task={t} assignees={assignees} />
                 ))}
               </ul>
             </div>
@@ -176,7 +200,13 @@ function TaskGroup({
   );
 }
 
-function TaskRow({ task }: { task: BookingTaskRow }) {
+function TaskRow({
+  task,
+  assignees,
+}: {
+  task: BookingTaskRow;
+  assignees: AssigneeOption[];
+}) {
   const [pending, startTransition] = useTransition();
   const [showNotes, setShowNotes] = useState(false);
   const [notes, setNotes] = useState(task.notes ?? '');
@@ -298,6 +328,27 @@ function TaskRow({ task }: { task: BookingTaskRow }) {
             <div className="mt-0.5 text-[11px] text-slate-400">
               erledigt am {new Date(task.completed_at).toLocaleString('de-CH')} von{' '}
               {task.completed_by_name}
+            </div>
+          )}
+          {assignees.length > 0 && (
+            <div className="mt-1">
+              <select
+                className="rounded border border-slate-200 bg-white px-2 py-0.5 text-[11px] text-slate-600"
+                value={task.assigned_to ?? ''}
+                onChange={(e) =>
+                  startTransition(async () => {
+                    await assignBookingTask(task.id, e.target.value || null);
+                  })
+                }
+                disabled={pending}
+              >
+                <option value="">— nicht zugewiesen —</option>
+                {assignees.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.full_name} ({u.role})
+                  </option>
+                ))}
+              </select>
             </div>
           )}
         </div>

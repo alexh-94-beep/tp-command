@@ -101,11 +101,11 @@ export default async function BookingDetailPage({
 
   if (!b) notFound();
 
-  // Workflow-Aufgaben laden + completed_by joinen
+  // Workflow-Aufgaben laden + completed_by + assigned_to joinen
   const { data: rawTasks } = await supabase
     .from('booking_tasks')
     .select(
-      'id, kind, position, code, title, description, category, due_date, status, is_optional, is_conditional, notes, template_task_id, completed_at, completed_by_user:users!booking_tasks_completed_by_fkey(full_name)',
+      'id, kind, position, code, title, description, category, due_date, status, is_optional, is_conditional, notes, template_task_id, completed_at, assigned_to, completed_by_user:users!booking_tasks_completed_by_fkey(full_name), assignee_user:users!booking_tasks_assigned_to_fkey(full_name)',
     )
     .eq('booking_id', b.id)
     .order('kind', { ascending: true })
@@ -127,6 +127,20 @@ export default async function BookingDetailPage({
     template_task_id: r.template_task_id,
     completed_at: r.completed_at,
     completed_by_name: r.completed_by_user?.full_name ?? null,
+    assigned_to: r.assigned_to,
+    assigned_to_name: r.assignee_user?.full_name ?? null,
+  }));
+
+  // Aktive User fuer Zuteilungs-Dropdown
+  const { data: users } = await supabase
+    .from('users')
+    .select('id, full_name, role')
+    .eq('is_active', true)
+    .order('full_name');
+  const assignees = (users ?? []).map((u) => ({
+    id: u.id,
+    full_name: u.full_name,
+    role: u.role,
   }));
 
   // Zahlungen laden (Phase 8)
@@ -268,7 +282,7 @@ export default async function BookingDetailPage({
         communications={communications}
       />
 
-      <BookingTasksSection bookingId={b.id} tasks={tasks} />
+      <BookingTasksSection bookingId={b.id} tasks={tasks} assignees={assignees} />
 
       {/* Übergabe/Abnahme-Section folgt in Phase 8 (handover). */}
     </div>

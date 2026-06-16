@@ -15,7 +15,8 @@ export type AllowedFilterPath =
   | '/bookings'
   | '/calendar'
   | '/tenants'
-  | '/payments';
+  | '/payments'
+  | '/invoices';
 
 interface ChipFilterProps {
   label: string;

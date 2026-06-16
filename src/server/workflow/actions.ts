@@ -256,6 +256,28 @@ export async function regenerateBookingTasks(
   return { ok: true, created: r.created };
 }
 
+// ── Zuteilung aendern (Phase 14a) ─────────────────────────────────────
+
+export async function assignBookingTask(
+  taskId: string,
+  userId: string | null,
+): Promise<Result> {
+  await requireRole(['admin', 'office']);
+  const supabase = await createSupabaseServerClient();
+  const { data: t } = await supabase
+    .from('booking_tasks')
+    .select('booking_id')
+    .eq('id', taskId)
+    .maybeSingle();
+  const { error } = await supabase
+    .from('booking_tasks')
+    .update({ assigned_to: userId })
+    .eq('id', taskId);
+  if (error) return { ok: false, error: error.message };
+  if (t?.booking_id) await revalidateForTask(t.booking_id);
+  return { ok: true };
+}
+
 // (Type re-export entfernt — in 'use server'-Files werden Type-Re-Exports
 // inkonsistent vom Next-Bundler behandelt und koennen Runtime-Fehler
 // 'WorkflowKind is not defined' verursachen, wenn die Action-Module-Kette

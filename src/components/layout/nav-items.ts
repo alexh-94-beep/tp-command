@@ -6,6 +6,7 @@ import {
   ListChecks,
   Sparkles,
   CreditCard,
+  FileText,
   Users,
   Settings,
 } from 'lucide-react';
@@ -19,6 +20,7 @@ export type NavHref =
   | '/tasks'
   | '/cleaning'
   | '/payments'
+  | '/invoices'
   | '/tenants'
   | '/settings';
 
@@ -42,6 +44,12 @@ export const NAV_ITEMS: NavItem[] = [
     label: 'Zahlungen',
     href: '/payments',
     icon: CreditCard,
+    roles: ['admin', 'office', 'management'],
+  },
+  {
+    label: 'Rechnungen',
+    href: '/invoices',
+    icon: FileText,
     roles: ['admin', 'office', 'management'],
   },
   { label: 'Mieter & Gäste', href: '/tenants', icon: Users },

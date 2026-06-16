@@ -104,6 +104,25 @@ export async function instantiateBookingTasks(
     created_iso: booking.created_at.slice(0, 10),
   };
 
+  // Auto-Zuteilung: pro assignee_role eine User-ID picken
+  // - cleaning  → user mit role='cleaning' (z.B. Mireme — Lead Reinigungsteam)
+  // - office    → user mit role='office'   (z.B. Brian/Sharon — die Langzeit-Owner)
+  // - admin     → user mit role='admin'    (Alex)
+  // - any       → null (Office picks später)
+  const { data: usersByRole } = await supabase
+    .from('users')
+    .select('id, role, full_name, is_active')
+    .eq('is_active', true)
+    .order('full_name');
+  const firstOfRole = (role: string): string | null => {
+    const u = (usersByRole ?? []).find((x) => x.role === role);
+    return u?.id ?? null;
+  };
+  const assigneeFor = (assigneeRole: string | null): string | null => {
+    if (!assigneeRole || assigneeRole === 'any') return null;
+    return firstOfRole(assigneeRole);
+  };
+
   const rows = [];
   let skipped = 0;
 
@@ -140,6 +159,7 @@ export async function instantiateBookingTasks(
       is_optional: tt.is_optional,
       is_conditional: tt.is_conditional,
       condition_key: tt.condition_key,
+      assigned_to: assigneeFor(tt.assignee_role),
     });
   }
 

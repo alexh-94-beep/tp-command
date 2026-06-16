@@ -1102,6 +1102,111 @@ export type Database = {
           },
         ]
       }
+      debitor_invoices: {
+        Row: {
+          address: string | null
+          amount_chf: number | null
+          apartment_id: string | null
+          attachment_name: string | null
+          attachment_url: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          finalized_at: string | null
+          finalized_by: string | null
+          first_name: string | null
+          id: string
+          invoice_number: string | null
+          invoiced_at: string | null
+          invoiced_by: string | null
+          last_name: string | null
+          service_date: string | null
+          status: Database["public"]["Enums"]["debitor_invoice_status"]
+          subject: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          amount_chf?: number | null
+          apartment_id?: string | null
+          attachment_name?: string | null
+          attachment_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          finalized_at?: string | null
+          finalized_by?: string | null
+          first_name?: string | null
+          id?: string
+          invoice_number?: string | null
+          invoiced_at?: string | null
+          invoiced_by?: string | null
+          last_name?: string | null
+          service_date?: string | null
+          status?: Database["public"]["Enums"]["debitor_invoice_status"]
+          subject?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          amount_chf?: number | null
+          apartment_id?: string | null
+          attachment_name?: string | null
+          attachment_url?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          finalized_at?: string | null
+          finalized_by?: string | null
+          first_name?: string | null
+          id?: string
+          invoice_number?: string | null
+          invoiced_at?: string | null
+          invoiced_by?: string | null
+          last_name?: string | null
+          service_date?: string | null
+          status?: Database["public"]["Enums"]["debitor_invoice_status"]
+          subject?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "debitor_invoices_apartment_id_fkey"
+            columns: ["apartment_id"]
+            isOneToOne: false
+            referencedRelation: "apartments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "debitor_invoices_apartment_id_fkey"
+            columns: ["apartment_id"]
+            isOneToOne: false
+            referencedRelation: "view_apartment_status_today"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "debitor_invoices_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "debitor_invoices_finalized_by_fkey"
+            columns: ["finalized_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "debitor_invoices_invoiced_by_fkey"
+            columns: ["invoiced_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       defects: {
         Row: {
           apartment_id: string
@@ -2105,6 +2210,7 @@ export type Database = {
         | "checkout_info"
         | "internal_cleaning_notification"
       contract_status: "draft" | "sent" | "signed" | "cancelled"
+      debitor_invoice_status: "draft" | "final" | "created"
       defect_severity: "low" | "normal" | "high" | "urgent"
       defect_status: "open" | "in_progress" | "resolved" | "wont_fix"
       employment_status:
@@ -2830,6 +2936,7 @@ export const Constants = {
         "internal_cleaning_notification",
       ],
       contract_status: ["draft", "sent", "signed", "cancelled"],
+      debitor_invoice_status: ["draft", "final", "created"],
       defect_severity: ["low", "normal", "high", "urgent"],
       defect_status: ["open", "in_progress", "resolved", "wont_fix"],
       employment_status: [
