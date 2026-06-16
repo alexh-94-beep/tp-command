@@ -84,7 +84,8 @@ const updateSchema = z.object({
 export async function updateStandaloneTask(
   formData: FormData,
 ): Promise<{ ok: boolean; error?: string }> {
-  await requireRole(['admin', 'office']);
+  // Phase 15: Mireme darf eigene Aufgaben (Ersteller oder Assignee) editieren
+  await requireRole(['admin', 'office', 'cleaning']);
   const raw: Record<string, unknown> = Object.fromEntries(formData.entries());
   for (const k of Object.keys(raw)) if (raw[k] === '') delete raw[k];
   const parsed = updateSchema.safeParse(raw);

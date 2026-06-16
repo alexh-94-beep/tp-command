@@ -169,7 +169,7 @@ export default async function CleaningDashboard({ me }: { me: AppUser }) {
         due: s.due_date ?? '9999-12-31',
         sub: `${baseSub}${timeText}`,
         priority: s.priority ?? 'normal',
-        href: '/tasks',
+        href: `/tasks/${s.id}`,
       };
     }),
   ].sort((a, b) => (a.due < b.due ? -1 : a.due > b.due ? 1 : 0));

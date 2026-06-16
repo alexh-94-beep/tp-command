@@ -161,7 +161,12 @@ export default function StandaloneTasksSection({
                   return (
                     <tr key={r.id} className="hover:bg-slate-50">
                       <td className="px-3 py-2">
-                        <div className="font-medium">{r.title}</div>
+                        <a
+                          href={`/tasks/${r.id}`}
+                          className="font-medium hover:underline"
+                        >
+                          {r.title}
+                        </a>
                         {r.description && (
                           <div className="mt-0.5 max-w-md truncate text-xs text-slate-500">
                             {r.description}
