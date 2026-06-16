@@ -14,7 +14,7 @@ export default async function WeeklyPage({
 }: {
   searchParams: Promise<{ week?: string }>;
 }) {
-  await requireRole(['admin', 'office']);
+  await requireRole(['admin', 'office', 'cleaning']);
   const sp = await searchParams;
   const baseDate =
     sp.week && /^\d{4}-\d{2}-\d{2}$/.test(sp.week) ? sp.week : todayIso();

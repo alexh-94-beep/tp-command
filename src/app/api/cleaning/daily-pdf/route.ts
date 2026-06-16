@@ -87,7 +87,8 @@ function deriveCategory(t: {
 }
 
 export async function GET(request: NextRequest) {
-  await requireRole(['admin', 'office']);
+  // Phase 15: Mireme verschickt den Tagesplan an die Reinigerinnen
+  await requireRole(['admin', 'office', 'cleaning']);
 
   const url = new URL(request.url);
   const date = url.searchParams.get('date') ?? new Date().toISOString().slice(0, 10);

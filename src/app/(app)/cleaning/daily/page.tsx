@@ -15,7 +15,7 @@ export default async function DailyPage({
 }: {
   searchParams: Promise<{ date?: string }>;
 }) {
-  await requireRole(['admin', 'office']);
+  await requireRole(['admin', 'office', 'cleaning']);
   const sp = await searchParams;
   const date = sp.date && /^\d{4}-\d{2}-\d{2}$/.test(sp.date) ? sp.date : todayIso();
 

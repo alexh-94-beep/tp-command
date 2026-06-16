@@ -207,7 +207,8 @@ async function drawPhotos(state: PageState, photos: PhotoEmbed[]): Promise<PageS
 }
 
 export async function GET(request: NextRequest) {
-  await requireRole(['admin', 'office']);
+  // Phase 15: Mireme verschickt den Schadensrapport an Cityus
+  await requireRole(['admin', 'office', 'cleaning']);
 
   const url = new URL(request.url);
   const fromIso = url.searchParams.get('from') ?? new Date().toISOString().slice(0, 10);

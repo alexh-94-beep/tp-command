@@ -19,6 +19,7 @@ import {
   ArrowDownToLine,
   Plus,
   ClipboardList,
+  CalendarDays,
 } from 'lucide-react';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/shared/page-header';
@@ -174,6 +175,18 @@ export default async function CleaningDashboard({ me }: { me: AppUser }) {
         description={`Übersicht für ${formatDateLong(today)}.`}
         actions={
           <div className="flex flex-wrap gap-2">
+            <Link href="/cleaning/daily">
+              <Button variant="secondary">
+                <CalendarDays className="h-4 w-4" />
+                Tagesplan
+              </Button>
+            </Link>
+            <Link href="/cleaning/weekly">
+              <Button variant="secondary">
+                <CalendarDays className="h-4 w-4" />
+                Wochenplan
+              </Button>
+            </Link>
             <Link href="/cleaning">
               <Button variant="secondary">
                 <Sparkles className="h-4 w-4" />

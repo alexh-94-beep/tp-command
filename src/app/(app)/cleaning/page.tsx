@@ -202,10 +202,13 @@ export default async function CleaningPage({
                 }))}
                 externalOwners={externalOwners}
               />
+              {/* Phase 15: Cityus-Import + Schadensrapport sind Mireme's
+                  Aufgaben (Cityus-Betreuung + Reporting). Massen-Aktionen
+                  bleiben Office. */}
+              <CityusImportButton />
+              <DamageReportButton />
               {canManage ? (
                 <>
-                  <CityusImportButton />
-                  <DamageReportButton />
                   <form action={triggerForm}>
                     <Button variant="secondary" type="submit">
                       <RefreshCw className="h-4 w-4" />

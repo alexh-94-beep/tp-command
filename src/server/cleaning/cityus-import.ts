@@ -27,7 +27,7 @@ export interface CityusPreviewResult {
 export async function previewCityusImport(
   formData: FormData,
 ): Promise<CityusPreviewResult> {
-  await requireRole(['admin', 'office']);
+  await requireRole(['admin', 'office', 'cleaning']);
   const file = formData.get('file');
   if (!(file instanceof File)) return { ok: false, error: 'Keine Datei.' };
 
@@ -109,7 +109,7 @@ export interface CityusApplyResult {
 export async function applyCityusImport(
   rowsJson: string,
 ): Promise<CityusApplyResult> {
-  await requireRole(['admin', 'office']);
+  await requireRole(['admin', 'office', 'cleaning']);
   const rows: CityusPreviewRow[] = JSON.parse(rowsJson);
   const supabase = await createSupabaseServerClient();
   const today = todayIso();
