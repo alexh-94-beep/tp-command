@@ -67,7 +67,8 @@ export default async function CleaningDashboard({ me }: { me: AppUser }) {
       .order('scheduled_date', { ascending: true })
       .order('scheduled_time', { ascending: true, nullsFirst: false })
       .limit(15),
-    // Meine Workflow-Aufgaben heute + ueberfaellig (booking-bezogen)
+    // Meine Workflow-Aufgaben (alle offenen, sortiert nach Faelligkeit)
+    // Tasks ohne due_date werden nicht ausgefiltert — Mireme soll sie sehen.
     supabase
       .from('booking_tasks')
       .select(
@@ -75,20 +76,20 @@ export default async function CleaningDashboard({ me }: { me: AppUser }) {
       )
       .in('status', ['open', 'in_progress'])
       .eq('assigned_to', me.id)
-      .lte('due_date', today)
       .order('due_date', { ascending: true, nullsFirst: false })
-      .limit(15),
-    // Meine Standalone-Aufgaben heute + ueberfaellig
+      .limit(20),
+    // Meine Standalone-Aufgaben: zugewiesen ODER von ihr erstellt — sie soll
+    // ihre selbst erfassten Telefon-Aufgaben auch sehen, wenn sie noch
+    // niemandem zugeordnet sind oder sich selbst zugeordnet wurden.
     supabase
       .from('standalone_tasks')
       .select(
-        'id, title, category, priority, status, due_date, apartment:apartments(number)',
+        'id, title, category, priority, status, due_date, due_time, apartment_label, apartment:apartments(number)',
       )
       .in('status', ['open', 'in_progress'])
-      .eq('assignee_id', me.id)
-      .lte('due_date', today)
+      .or(`assignee_id.eq.${me.id},created_by.eq.${me.id}`)
       .order('due_date', { ascending: true, nullsFirst: false })
-      .limit(15),
+      .limit(20),
     // Anstehende Einzuege (0-3 Tage) — egal welche Mietart
     supabase
       .from('bookings')
@@ -155,17 +156,22 @@ export default async function CleaningDashboard({ me }: { me: AppUser }) {
       priority: 'normal',
       href: w.booking ? `/bookings/${w.booking.id}` : '/tasks',
     })),
-    ...(myStandaloneTasks.data ?? []).map((s) => ({
-      kind: 'standalone' as const,
-      id: s.id,
-      title: s.title,
-      due: s.due_date ?? today,
-      sub: s.apartment?.number
-        ? `Wohnung ${s.apartment.number}`
-        : (s.category ?? 'Allgemein'),
-      priority: s.priority ?? 'normal',
-      href: '/tasks',
-    })),
+    ...(myStandaloneTasks.data ?? []).map((s) => {
+      const aptText =
+        s.apartment?.number ?? s.apartment_label ?? null;
+      const baseSub = aptText ? `Wohnung ${aptText}` : (s.category ?? 'Allgemein');
+      const timeText = s.due_time ? ` · ${s.due_time.slice(0, 5)}` : '';
+      return {
+        kind: 'standalone' as const,
+        id: s.id,
+        title: s.title,
+        // Tasks ohne due_date erscheinen am Ende der Liste (FAR_FUTURE)
+        due: s.due_date ?? '9999-12-31',
+        sub: `${baseSub}${timeText}`,
+        priority: s.priority ?? 'normal',
+        href: '/tasks',
+      };
+    }),
   ].sort((a, b) => (a.due < b.due ? -1 : a.due > b.due ? 1 : 0));
 
   return (
@@ -260,7 +266,7 @@ export default async function CleaningDashboard({ me }: { me: AppUser }) {
       <section className="space-y-2">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-medium text-slate-600">
-            Meine Aufgaben heute &amp; überfällig
+            Meine offenen Aufgaben
           </h2>
           <span className="text-xs text-slate-500">{myTasks.length} Einträge</span>
         </div>
@@ -272,7 +278,9 @@ export default async function CleaningDashboard({ me }: { me: AppUser }) {
           <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
             <ul className="divide-y divide-slate-100">
               {myTasks.map((t) => {
-                const isOverdue = t.due < today;
+                const hasDate = t.due !== '9999-12-31';
+                const isOverdue = hasDate && t.due < today;
+                const isToday = hasDate && t.due === today;
                 return (
                   <li key={`${t.kind}-${t.id}`}>
                     <Link
@@ -303,8 +311,14 @@ export default async function CleaningDashboard({ me }: { me: AppUser }) {
                         <div className="mt-0.5 text-xs text-slate-500">{t.sub}</div>
                       </div>
                       <div className="text-right">
-                        {isOverdue ? (
+                        {!hasDate ? (
+                          <span className="text-xs text-slate-400">
+                            ohne Datum
+                          </span>
+                        ) : isOverdue ? (
                           <Badge tone="danger">{formatDate(t.due)}</Badge>
+                        ) : isToday ? (
+                          <Badge tone="warning">heute</Badge>
                         ) : (
                           <span className="text-xs text-slate-500">
                             {formatDate(t.due)}

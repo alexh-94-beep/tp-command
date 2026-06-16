@@ -16,8 +16,10 @@ const createSchema = z.object({
     .default('other'),
   priority: z.enum(['low', 'normal', 'high', 'urgent']).default('normal'),
   apartment_id: z.string().uuid().optional(),
+  apartment_label: z.string().optional(),
   assignee_id: z.string().uuid().optional(),
   due_date: z.string().optional(),
+  due_time: z.string().optional(),
   notes: z.string().optional(),
 });
 
@@ -41,9 +43,12 @@ export async function createStandaloneTask(
       description: v.description ?? null,
       category: v.category,
       priority: v.priority,
+      // Wohnung: entweder interne (apartment_id) oder externe Freitext-Bezeichnung
       apartment_id: v.apartment_id ?? null,
+      apartment_label: v.apartment_label ?? null,
       assignee_id: v.assignee_id ?? null,
       due_date: v.due_date ?? null,
+      due_time: v.due_time ?? null,
       notes: v.notes ?? null,
       created_by: user?.id ?? null,
       status: 'open',
@@ -69,8 +74,10 @@ const updateSchema = z.object({
     .optional(),
   priority: z.enum(['low', 'normal', 'high', 'urgent']).optional(),
   apartment_id: z.string().uuid().optional(),
+  apartment_label: z.string().optional(),
   assignee_id: z.string().uuid().optional(),
   due_date: z.string().optional(),
+  due_time: z.string().optional(),
   notes: z.string().optional(),
 });
 

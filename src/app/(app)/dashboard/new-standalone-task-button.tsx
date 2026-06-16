@@ -21,6 +21,8 @@ import { createStandaloneTask } from '@/server/tasks/standalone';
 import { standaloneTaskCategoryLabel } from '@/lib/labels';
 import type { StandaloneTaskCategory } from '@/types/aliases';
 
+type ApartmentMode = 'internal' | 'external' | 'none';
+
 const inputCls =
   'block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900';
 
@@ -57,9 +59,20 @@ export default function NewStandaloneTaskButton({
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [aptMode, setAptMode] = useState<ApartmentMode>('none');
 
   function handleSubmit(form: FormData) {
     setError(null);
+    // Je nach Modus genau einen Wohnungswert mitsenden — den anderen
+    // explizit loeschen, damit der Server kein Stale-Field bekommt.
+    if (aptMode === 'internal') {
+      form.delete('apartment_label');
+    } else if (aptMode === 'external') {
+      form.delete('apartment_id');
+    } else {
+      form.delete('apartment_id');
+      form.delete('apartment_label');
+    }
     startTransition(async () => {
       const r = await createStandaloneTask(form);
       if (!r.ok) {
@@ -67,6 +80,7 @@ export default function NewStandaloneTaskButton({
         return;
       }
       setOpen(false);
+      setAptMode('none');
       router.refresh();
     });
   }
@@ -151,36 +165,85 @@ export default function NewStandaloneTaskButton({
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div>
-                  <label className="block text-xs text-slate-500">Wohnung (optional)</label>
+              <div>
+                <label className="block text-xs text-slate-500">Wohnung (optional)</label>
+                <div className="mb-2 grid grid-cols-3 gap-1 rounded-md border border-slate-200 bg-slate-50 p-1 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setAptMode('none')}
+                    className={`rounded px-2 py-1.5 font-medium ${
+                      aptMode === 'none'
+                        ? 'bg-white text-slate-900 shadow-sm'
+                        : 'text-slate-500 hover:text-slate-800'
+                    }`}
+                  >
+                    Keine
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAptMode('internal')}
+                    className={`rounded px-2 py-1.5 font-medium ${
+                      aptMode === 'internal'
+                        ? 'bg-white text-slate-900 shadow-sm'
+                        : 'text-slate-500 hover:text-slate-800'
+                    }`}
+                  >
+                    Eigene Wohnung
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setAptMode('external')}
+                    className={`rounded px-2 py-1.5 font-medium ${
+                      aptMode === 'external'
+                        ? 'bg-white text-slate-900 shadow-sm'
+                        : 'text-slate-500 hover:text-slate-800'
+                    }`}
+                  >
+                    Andere (Freitext)
+                  </button>
+                </div>
+                {aptMode === 'internal' && (
                   <select name="apartment_id" className={inputCls} defaultValue="">
-                    <option value="">— keine —</option>
+                    <option value="">— Wohnung wählen —</option>
                     {apartments.map((a) => (
                       <option key={a.id} value={a.id}>
                         {a.number}
                       </option>
                     ))}
                   </select>
-                </div>
-                <div>
-                  <label className="block text-xs text-slate-500">
-                    Zugewiesen an (optional)
-                  </label>
-                  <select name="assignee_id" className={inputCls} defaultValue="">
-                    <option value="">— offen (Office verteilt) —</option>
-                    {users.map((u) => (
-                      <option key={u.id} value={u.id}>
-                        {u.full_name} ({u.role})
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                )}
+                {aptMode === 'external' && (
+                  <input
+                    name="apartment_label"
+                    placeholder="z.B. E.2201, Birkenweg 5, etc."
+                    className={inputCls}
+                  />
+                )}
               </div>
 
               <div>
-                <label className="block text-xs text-slate-500">Fällig (optional)</label>
-                <input type="date" name="due_date" className={inputCls} />
+                <label className="block text-xs text-slate-500">
+                  Zugewiesen an (optional)
+                </label>
+                <select name="assignee_id" className={inputCls} defaultValue="">
+                  <option value="">— offen (Office verteilt) —</option>
+                  {users.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.full_name} ({u.role})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-slate-500">Fällig am</label>
+                  <input type="date" name="due_date" className={inputCls} />
+                </div>
+                <div>
+                  <label className="block text-xs text-slate-500">Uhrzeit</label>
+                  <input type="time" name="due_time" className={inputCls} />
+                </div>
               </div>
 
               <div>
