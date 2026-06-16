@@ -42,7 +42,7 @@ export interface UpdateBookingResult {
 }
 
 export async function updateBooking(formData: FormData): Promise<UpdateBookingResult> {
-  await requireRole(['admin', 'office']);
+  const user = await requireRole(['admin', 'office']);
 
   const raw: Record<string, unknown> = Object.fromEntries(formData.entries());
   raw.parking_included = formData.has('parking_included');
@@ -117,7 +117,8 @@ export async function updateBooking(formData: FormData): Promise<UpdateBookingRe
   // Workflow-Aufgaben (Phase 4):
   // - fehlende Schritte ergaenzen (z.B. wenn Mietart gewechselt wurde)
   // - Faelligkeitsdaten der offenen Aufgaben neu berechnen
-  await instantiateBookingTasks(supabase, v.id);
+  // Phase 15: Editor bekommt neu hinzugefuegte office-Tasks als Assignee
+  await instantiateBookingTasks(supabase, v.id, user.id);
   await recomputeBookingTaskDueDates(supabase, v.id);
 
   revalidatePath('/bookings');

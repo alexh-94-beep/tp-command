@@ -181,7 +181,7 @@ export async function importFlatfoxApplication(
   applicationPk: number,
   options: ImportFlatfoxOptions = {},
 ): Promise<ImportFlatfoxResult> {
-  await requireRole(['admin', 'office']);
+  const user = await requireRole(['admin', 'office']);
 
   const appRes = await getApplication(applicationPk);
   if (!appRes.ok || !appRes.data)
@@ -375,7 +375,8 @@ export async function importFlatfoxApplication(
   }
 
   // Workflow-Aufgaben (Langzeit Einzug + Auszug) instantiieren — Phase 4
-  await instantiateBookingTasks(supabase, booking.id);
+  // Phase 15: Ersteller des Imports bekommt office-Tasks zugewiesen
+  await instantiateBookingTasks(supabase, booking.id, user.id);
 
   // Plan-Zahlungen erzeugen — Phase 8 (Depot + Erst-Miete fuer Langzeit)
   try {

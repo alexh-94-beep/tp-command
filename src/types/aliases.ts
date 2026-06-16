@@ -78,10 +78,11 @@ export type CleaningType = Enums['cleaning_type'];
 export type CleaningPriority = Enums['cleaning_priority'];
 export type AccessMethod = Enums['access_method'];
 
-// 13.2: source ist text mit CHECK-Constraint (siehe Migration)
+// 13.2 + 15: source ist text mit CHECK-Constraint (siehe Migration)
 export type CleaningSourceTag =
   | 'manual'
   | 'auto_checkout'
+  | 'auto_refresh'
   | 'cityus'
   | 'workflow'
   | 'external_owner';

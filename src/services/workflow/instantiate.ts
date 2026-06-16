@@ -58,9 +58,33 @@ export function evaluateConditionalStatus(
  * - Bedingte Aufgaben bekommen Status 'na', wenn Bedingung nicht erfuellt.
  * - Faelligkeitsdaten via computeDueDate (anchor + offset).
  */
+/**
+ * Picks die User-ID, die einer assignee_role zugeordnet wird.
+ *
+ * - 'any' oder null → null (Office picks später)
+ * - sonst: bevorzugt den `creator` wenn seine Rolle der gefragten entspricht
+ *   ODER er Admin ist (Super-User). Sonst Fallback: erster aktiver User
+ *   mit dieser Rolle.
+ *
+ * Pure helper, getrennt damit per Vitest testbar.
+ */
+export function pickAssignee(
+  assigneeRole: string | null,
+  creator: { id: string; role: string } | null,
+  usersByRole: Array<{ id: string; role: string }>,
+): string | null {
+  if (!assigneeRole || assigneeRole === 'any') return null;
+  if (creator && (creator.role === assigneeRole || creator.role === 'admin')) {
+    return creator.id;
+  }
+  const u = usersByRole.find((x) => x.role === assigneeRole);
+  return u?.id ?? null;
+}
+
 export async function instantiateBookingTasks(
   supabase: SupabaseClient<Database>,
   bookingId: string,
+  creatorUserId?: string | null,
 ): Promise<{ created: number; skipped: number; error?: string }> {
   const { data: booking, error: bErr } = await supabase
     .from('bookings')
@@ -106,22 +130,27 @@ export async function instantiateBookingTasks(
 
   // Auto-Zuteilung: pro assignee_role eine User-ID picken
   // - cleaning  → user mit role='cleaning' (z.B. Mireme — Lead Reinigungsteam)
-  // - office    → user mit role='office'   (z.B. Brian/Sharon — die Langzeit-Owner)
+  // - office    → bevorzugt der Ersteller der Buchung; Fallback erster office-User
   // - admin     → user mit role='admin'    (Alex)
   // - any       → null (Office picks später)
+  //
+  // Phase 15: wenn der Ersteller (creatorUserId) eine Rolle hat, die zur
+  // Aufgabe passt — oder er Admin ist —, bekommt er die Aufgabe selbst. So
+  // gehen office-Tasks an den User, der die Buchung wirklich erfasst hat,
+  // statt immer an den ersten office-User.
   const { data: usersByRole } = await supabase
     .from('users')
     .select('id, role, full_name, is_active')
     .eq('is_active', true)
     .order('full_name');
-  const firstOfRole = (role: string): string | null => {
-    const u = (usersByRole ?? []).find((x) => x.role === role);
-    return u?.id ?? null;
-  };
-  const assigneeFor = (assigneeRole: string | null): string | null => {
-    if (!assigneeRole || assigneeRole === 'any') return null;
-    return firstOfRole(assigneeRole);
-  };
+  let creator: { id: string; role: string } | null = null;
+  if (creatorUserId) {
+    const c = (usersByRole ?? []).find((u) => u.id === creatorUserId);
+    if (c) creator = { id: c.id, role: c.role };
+  }
+  const usersForPick = (usersByRole ?? []).map((u) => ({ id: u.id, role: u.role }));
+  const assigneeFor = (assigneeRole: string | null): string | null =>
+    pickAssignee(assigneeRole, creator, usersForPick);
 
   const rows = [];
   let skipped = 0;
