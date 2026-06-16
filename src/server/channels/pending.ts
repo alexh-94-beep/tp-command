@@ -37,6 +37,7 @@ export async function createPendingReservation(
   formData: FormData,
 ): Promise<CreatePendingResult> {
   await requireRole(['admin', 'office']);
+  const actor = await getCurrentUser();
 
   const raw: Record<string, unknown> = Object.fromEntries(formData.entries());
   for (const k of ['summary', 'description', 'guest_count']) {
@@ -98,6 +99,22 @@ export async function createPendingReservation(
     .select('id')
     .single();
   if (error) return { ok: false, error: error.message };
+
+  void (async () => {
+    const { logAudit } = await import('@/services/audit/log');
+    await logAudit(supabase, {
+      actorId: actor?.id ?? null,
+      entity: 'pending_reservation',
+      entityId: created.id,
+      action: 'created',
+      diff: {
+        channel_id: channel.id,
+        external_uid: v.external_uid,
+        start_date: v.start_date,
+        end_date: v.end_date,
+      },
+    });
+  })();
 
   revalidatePath('/bookings/pending');
   revalidatePath('/bookings');
@@ -318,12 +335,22 @@ export async function cancelPendingReservation(
   reservationId: string,
 ): Promise<{ ok: boolean; error?: string }> {
   await requireRole(['admin', 'office']);
+  const actor = await getCurrentUser();
   const supabase = await createSupabaseServerClient();
   const { error } = await supabase
     .from('pending_reservations')
     .update({ status: 'cancelled' })
     .eq('id', reservationId);
   if (error) return { ok: false, error: error.message };
+  void (async () => {
+    const { logAudit } = await import('@/services/audit/log');
+    await logAudit(supabase, {
+      actorId: actor?.id ?? null,
+      entity: 'pending_reservation',
+      entityId: reservationId,
+      action: 'cancelled',
+    });
+  })();
   revalidatePath('/bookings/pending');
   revalidatePath('/bookings');
   return { ok: true };

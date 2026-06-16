@@ -41,6 +41,16 @@ export async function completeTask(taskId: string): Promise<Result> {
     })
     .eq('id', taskId);
   if (error) return { ok: false, error: error.message };
+  void (async () => {
+    const { logAudit } = await import('@/services/audit/log');
+    await logAudit(supabase, {
+      actorId: me?.id ?? null,
+      entity: 'booking_task',
+      entityId: taskId,
+      action: 'status_changed',
+      diff: { status: { after: 'done' } },
+    });
+  })();
   await revalidateForTask(t.booking_id);
   return { ok: true };
 }
@@ -116,7 +126,7 @@ export async function setTaskStatus(
 // ── Zuweisung & Notizen ──────────────────────────────────────────────
 
 export async function assignTask(taskId: string, userId: string | null): Promise<Result> {
-  await requireRole(['admin', 'office']);
+  const actor = await requireRole(['admin', 'office']);
   const supabase = await createSupabaseServerClient();
   const { data: t } = await supabase
     .from('booking_tasks')
@@ -130,6 +140,16 @@ export async function assignTask(taskId: string, userId: string | null): Promise
     .update({ assigned_to: userId })
     .eq('id', taskId);
   if (error) return { ok: false, error: error.message };
+  void (async () => {
+    const { logAudit } = await import('@/services/audit/log');
+    await logAudit(supabase, {
+      actorId: actor.id,
+      entity: 'booking_task',
+      entityId: taskId,
+      action: 'assigned',
+      diff: { assigned_to: userId },
+    });
+  })();
   await revalidateForTask(t.booking_id);
   return { ok: true };
 }

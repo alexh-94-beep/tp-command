@@ -48,6 +48,21 @@ export async function createApartmentDamage(
     .select('id')
     .single();
   if (error) return { ok: false, error: error.message };
+  void (async () => {
+    const { logAudit } = await import('@/services/audit/log');
+    await logAudit(supabase, {
+      actorId: user?.id ?? null,
+      entity: 'apartment_damage',
+      entityId: created.id,
+      action: 'created',
+      diff: {
+        apartment_id: v.apartment_id ?? null,
+        external_apartment_id: v.external_apartment_id ?? null,
+        severity: v.severity,
+        description: v.description,
+      },
+    });
+  })();
   if (v.apartment_id) revalidatePath(`/apartments/${v.apartment_id}`);
   revalidatePath('/cleaning');
   return { ok: true, damageId: created.id };
@@ -69,6 +84,7 @@ export async function updateApartmentDamage(
   formData: FormData,
 ): Promise<{ ok: boolean; error?: string }> {
   await requireRole(['admin', 'office']);
+  const user = await getCurrentUser();
   const raw: Record<string, unknown> = Object.fromEntries(formData.entries());
   for (const k of Object.keys(raw)) if (raw[k] === '') delete raw[k];
   const parsed = updateSchema.safeParse(raw);
@@ -85,6 +101,16 @@ export async function updateApartmentDamage(
     .update(patch)
     .eq('id', damage_id);
   if (error) return { ok: false, error: error.message };
+  void (async () => {
+    const { logAudit } = await import('@/services/audit/log');
+    await logAudit(supabase, {
+      actorId: user?.id ?? null,
+      entity: 'apartment_damage',
+      entityId: damage_id,
+      action: 'updated',
+      diff: patch as Record<string, unknown>,
+    });
+  })();
   if (dam?.apartment_id) revalidatePath(`/apartments/${dam.apartment_id}`);
   return { ok: true };
 }
@@ -124,6 +150,17 @@ export async function setDamageStatus(
     .update(patch)
     .eq('id', damageId);
   if (error) return { ok: false, error: error.message };
+  void (async () => {
+    const { logAudit } = await import('@/services/audit/log');
+    await logAudit(supabase, {
+      actorId: user?.id ?? null,
+      entity: 'apartment_damage',
+      entityId: damageId,
+      action: 'status_changed',
+      diff: { status: { after: status } },
+      note: resolutionNotes,
+    });
+  })();
   if (dam?.apartment_id) revalidatePath(`/apartments/${dam.apartment_id}`);
   return { ok: true };
 }
@@ -134,6 +171,7 @@ export async function deleteApartmentDamage(
   damageId: string,
 ): Promise<{ ok: boolean; error?: string }> {
   await requireRole(['admin', 'office']);
+  const user = await getCurrentUser();
   const supabase = await createSupabaseServerClient();
   const { data: dam } = await supabase
     .from('apartment_damages')
@@ -145,6 +183,15 @@ export async function deleteApartmentDamage(
     .delete()
     .eq('id', damageId);
   if (error) return { ok: false, error: error.message };
+  void (async () => {
+    const { logAudit } = await import('@/services/audit/log');
+    await logAudit(supabase, {
+      actorId: user?.id ?? null,
+      entity: 'apartment_damage',
+      entityId: damageId,
+      action: 'deleted',
+    });
+  })();
   if (dam?.apartment_id) revalidatePath(`/apartments/${dam.apartment_id}`);
   return { ok: true };
 }

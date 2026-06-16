@@ -35,6 +35,15 @@ export async function createInvoiceDraft(): Promise<{
     .select('id')
     .single();
   if (error) return { ok: false, error: error.message };
+  void (async () => {
+    const { logAudit } = await import('@/services/audit/log');
+    await logAudit(supabase, {
+      actorId: user?.id ?? null,
+      entity: 'debitor_invoice',
+      entityId: created.id,
+      action: 'created',
+    });
+  })();
   revalidatePath('/invoices');
   return { ok: true, invoiceId: created.id };
 }
@@ -60,6 +69,7 @@ export async function updateInvoice(
   formData: FormData,
 ): Promise<{ ok: boolean; error?: string }> {
   await requireRole(['admin', 'office', 'management']);
+  const user = await getCurrentUser();
   const raw: Record<string, unknown> = Object.fromEntries(formData.entries());
   for (const k of Object.keys(raw)) if (raw[k] === '') delete raw[k];
   const parsed = updateSchema.safeParse(raw);
@@ -96,6 +106,17 @@ export async function updateInvoice(
     .update(update)
     .eq('id', invoice_id);
   if (error) return { ok: false, error: error.message };
+
+  void (async () => {
+    const { logAudit } = await import('@/services/audit/log');
+    await logAudit(supabase, {
+      actorId: user?.id ?? null,
+      entity: 'debitor_invoice',
+      entityId: invoice_id,
+      action: 'updated',
+      diff: update as Record<string, unknown>,
+    });
+  })();
 
   revalidatePath('/invoices');
   revalidatePath(`/invoices/${invoice_id}`);
@@ -203,6 +224,7 @@ export async function revertInvoiceToDraft(
   invoiceId: string,
 ): Promise<{ ok: boolean; error?: string }> {
   await requireRole(['admin', 'office', 'management']);
+  const user = await getCurrentUser();
   const supabase = await createSupabaseServerClient();
   const { error } = await supabase
     .from('debitor_invoices')
@@ -214,6 +236,17 @@ export async function revertInvoiceToDraft(
     .eq('id', invoiceId)
     .eq('status', 'final');
   if (error) return { ok: false, error: error.message };
+  void (async () => {
+    const { logAudit } = await import('@/services/audit/log');
+    await logAudit(supabase, {
+      actorId: user?.id ?? null,
+      entity: 'debitor_invoice',
+      entityId: invoiceId,
+      action: 'status_changed',
+      note: 'Zurück auf Entwurf',
+      diff: { status: { after: 'draft' } },
+    });
+  })();
   revalidatePath('/invoices');
   revalidatePath(`/invoices/${invoiceId}`);
   return { ok: true };
@@ -268,6 +301,7 @@ export async function deleteInvoice(
   invoiceId: string,
 ): Promise<{ ok: boolean; error?: string }> {
   await requireRole(['admin', 'office', 'management']);
+  const user = await getCurrentUser();
   const supabase = await createSupabaseServerClient();
   const { data: inv } = await supabase
     .from('debitor_invoices')
@@ -282,6 +316,15 @@ export async function deleteInvoice(
     .delete()
     .eq('id', invoiceId);
   if (error) return { ok: false, error: error.message };
+  void (async () => {
+    const { logAudit } = await import('@/services/audit/log');
+    await logAudit(supabase, {
+      actorId: user?.id ?? null,
+      entity: 'debitor_invoice',
+      entityId: invoiceId,
+      action: 'deleted',
+    });
+  })();
   revalidatePath('/invoices');
   return { ok: true };
 }

@@ -57,6 +57,24 @@ export async function createStandaloneTask(
     .single();
   if (error) return { ok: false, error: error.message };
 
+  void (async () => {
+    const { logAudit } = await import('@/services/audit/log');
+    await logAudit(supabase, {
+      actorId: user?.id ?? null,
+      entity: 'standalone_task',
+      entityId: created.id,
+      action: 'created',
+      diff: {
+        title: v.title,
+        category: v.category,
+        priority: v.priority,
+        apartment_id: v.apartment_id ?? null,
+        apartment_label: v.apartment_label ?? null,
+        assignee_id: v.assignee_id ?? null,
+      },
+    });
+  })();
+
   revalidatePath('/tasks');
   revalidatePath('/dashboard');
   if (v.apartment_id) revalidatePath(`/apartments/${v.apartment_id}`);
@@ -86,6 +104,7 @@ export async function updateStandaloneTask(
 ): Promise<{ ok: boolean; error?: string }> {
   // Phase 15: Mireme darf eigene Aufgaben (Ersteller oder Assignee) editieren
   await requireRole(['admin', 'office', 'cleaning']);
+  const user = await getCurrentUser();
   const raw: Record<string, unknown> = Object.fromEntries(formData.entries());
   for (const k of Object.keys(raw)) if (raw[k] === '') delete raw[k];
   const parsed = updateSchema.safeParse(raw);
@@ -98,6 +117,17 @@ export async function updateStandaloneTask(
     .update(patch)
     .eq('id', task_id);
   if (error) return { ok: false, error: error.message };
+
+  void (async () => {
+    const { logAudit } = await import('@/services/audit/log');
+    await logAudit(supabase, {
+      actorId: user?.id ?? null,
+      entity: 'standalone_task',
+      entityId: task_id,
+      action: 'updated',
+      diff: patch as Record<string, unknown>,
+    });
+  })();
 
   revalidatePath('/tasks');
   if (patch.apartment_id) revalidatePath(`/apartments/${patch.apartment_id}`);
@@ -151,13 +181,22 @@ export async function setStandaloneTaskStatus(
 export async function deleteStandaloneTask(
   taskId: string,
 ): Promise<{ ok: boolean; error?: string }> {
-  await requireRole(['admin', 'office']);
+  const user = await requireRole(['admin', 'office']);
   const supabase = await createSupabaseServerClient();
   const { error } = await supabase
     .from('standalone_tasks')
     .delete()
     .eq('id', taskId);
   if (error) return { ok: false, error: error.message };
+  void (async () => {
+    const { logAudit } = await import('@/services/audit/log');
+    await logAudit(supabase, {
+      actorId: user.id,
+      entity: 'standalone_task',
+      entityId: taskId,
+      action: 'deleted',
+    });
+  })();
   revalidatePath('/tasks');
   revalidatePath('/dashboard');
   return { ok: true };

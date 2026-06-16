@@ -15,6 +15,7 @@ import type { Database } from '@/types/db';
 
 export const AUDIT_ENTITIES = [
   'booking',
+  'booking_task',
   'cleaning_task',
   'standalone_task',
   'debitor_invoice',
