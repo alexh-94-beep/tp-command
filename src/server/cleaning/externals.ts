@@ -24,7 +24,8 @@ export interface CreateOwnerResult {
 export async function createExternalOwner(
   formData: FormData,
 ): Promise<CreateOwnerResult> {
-  await requireRole(['admin', 'office']);
+  // Mireme (cleaning) darf Eigentuemer im Cleaning-Wizard anlegen — Phase 15
+  await requireRole(['admin', 'office', 'cleaning']);
   const raw: Record<string, unknown> = Object.fromEntries(formData.entries());
   for (const k of Object.keys(raw)) if (raw[k] === '') delete raw[k];
   const parsed = ownerSchema.safeParse(raw);
@@ -68,7 +69,8 @@ export interface CreateExternalAptResult {
 export async function createExternalApartment(
   formData: FormData,
 ): Promise<CreateExternalAptResult> {
-  await requireRole(['admin', 'office']);
+  // Mireme (cleaning) darf externe Wohnungen anlegen — Phase 15
+  await requireRole(['admin', 'office', 'cleaning']);
   const raw: Record<string, unknown> = Object.fromEntries(formData.entries());
   for (const k of Object.keys(raw)) if (raw[k] === '') delete raw[k];
   const parsed = externalAptSchema.safeParse(raw);
@@ -125,7 +127,8 @@ export interface CreateOwnerWithApartmentResult {
 export async function createOwnerWithApartment(
   formData: FormData,
 ): Promise<CreateOwnerWithApartmentResult> {
-  await requireRole(['admin', 'office']);
+  // Mireme (cleaning) darf Owner+Wohnung im Cleaning-Wizard inline anlegen — Phase 15
+  await requireRole(['admin', 'office', 'cleaning']);
   const raw: Record<string, unknown> = Object.fromEntries(formData.entries());
   for (const k of Object.keys(raw)) if (raw[k] === '') delete raw[k];
   const parsed = combinedSchema.safeParse(raw);
