@@ -83,6 +83,7 @@ export const cleaningStatusLabel: Record<CleaningStatus, string> = {
   in_progress: 'In Arbeit',
   done: 'Erledigt',
   quality_checked: 'Qualität geprüft',
+  cancelled: 'Storniert',
 };
 
 // ── Zahlungen ──────────────────────────────────────────────────────────

@@ -26,6 +26,7 @@ const STATUS_DOT: Record<CleaningStatus, string> = {
   in_progress: 'bg-blue-500',
   done: 'bg-emerald-500',
   quality_checked: 'bg-emerald-700',
+  cancelled: 'bg-red-400',
 };
 
 const DAY_LABELS = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];

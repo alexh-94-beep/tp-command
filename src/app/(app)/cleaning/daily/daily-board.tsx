@@ -22,11 +22,12 @@ const TYPE_LABELS: Record<CleaningType, string> = {
   deep_clean: 'Endreinigung',
 };
 
-const STATUS_TONE: Record<CleaningStatus, 'neutral' | 'warning' | 'info' | 'success'> = {
+const STATUS_TONE: Record<CleaningStatus, 'neutral' | 'warning' | 'info' | 'success' | 'danger'> = {
   open: 'warning',
   in_progress: 'info',
   done: 'success',
   quality_checked: 'success',
+  cancelled: 'danger',
 };
 
 export interface DailyTask {

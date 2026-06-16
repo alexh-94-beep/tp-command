@@ -11,6 +11,7 @@ import { cleaningStatusLabel } from '@/lib/labels';
 import CleaningTaskActions from './task-actions';
 import InspectionForm from './inspection-form';
 import DurationForm from './duration-form';
+import EditCancelSection from './edit-cancel-section';
 import type { AccessMethod, CleaningStatus, CleaningType } from '@/types/aliases';
 
 export const metadata = { title: 'Reinigungsauftrag' };
@@ -34,11 +35,12 @@ const accessLabel: Record<AccessMethod, string> = {
   other: 'Anders',
 };
 
-const statusTone: Record<CleaningStatus, 'neutral' | 'warning' | 'info' | 'success'> = {
+const statusTone: Record<CleaningStatus, 'neutral' | 'warning' | 'info' | 'success' | 'danger'> = {
   open: 'warning',
   in_progress: 'info',
   done: 'success',
   quality_checked: 'success',
+  cancelled: 'danger',
 };
 
 export default async function CleaningDetailPage({
@@ -58,9 +60,11 @@ export default async function CleaningDetailPage({
        estimated_duration_minutes, actual_duration_minutes,
        damage_found, damage_description, inspection_summary,
        linen_change, time_flexible, time_constraint_note, source,
+       cancellation_reason, cancelled_at,
        apartment:apartments(id, number, keybox_default_code, keybox_default_location),
        external_apartment:external_apartments(id, label, address, contact_name, contact_phone, contact_email),
        staff:cleaning_staff(id, full_name, phone),
+       cancelled_by_user:users!cleaning_tasks_cancelled_by_fkey(full_name),
        booking:bookings(id, end_date, check_out_time, rental_type),
        stay:subleasing_stays(id, guest_name, check_in_date, check_in_time, check_out_date, check_out_time, keybox_code, source)`,
     )
@@ -282,6 +286,32 @@ export default async function CleaningDetailPage({
           </CardBody>
         </Card>
       )}
+
+      <EditCancelSection
+        taskId={task.id}
+        status={task.status}
+        canManage={canManage}
+        defaults={{
+          scheduled_date: task.scheduled_date,
+          scheduled_time: task.scheduled_time,
+          type: task.type,
+          priority: task.priority,
+          estimated_duration_minutes: task.estimated_duration_minutes,
+          notes: task.notes,
+          linen_change: task.linen_change,
+          time_flexible: task.time_flexible,
+          time_constraint_note: task.time_constraint_note,
+        }}
+        cancellation={
+          task.status === 'cancelled'
+            ? {
+                reason: task.cancellation_reason,
+                at: task.cancelled_at,
+                by_name: task.cancelled_by_user?.full_name ?? null,
+              }
+            : undefined
+        }
+      />
 
       <DurationForm
         taskId={task.id}
