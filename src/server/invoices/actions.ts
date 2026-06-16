@@ -185,6 +185,15 @@ export async function setInvoiceFinal(
     })
     .eq('id', invoiceId);
   if (error) return { ok: false, error: error.message };
+  void (async () => {
+    const { logAudit } = await import('@/services/audit/log');
+    await logAudit(supabase, {
+      actorId: user?.id ?? null,
+      entity: 'debitor_invoice',
+      entityId: invoiceId,
+      action: 'finalized',
+    });
+  })();
   revalidatePath('/invoices');
   revalidatePath(`/invoices/${invoiceId}`);
   return { ok: true };
@@ -238,6 +247,16 @@ export async function setInvoiceCreated(
     .eq('id', parsed.data.invoice_id)
     .in('status', ['final']);
   if (error) return { ok: false, error: error.message };
+  void (async () => {
+    const { logAudit } = await import('@/services/audit/log');
+    await logAudit(supabase, {
+      actorId: user?.id ?? null,
+      entity: 'debitor_invoice',
+      entityId: parsed.data.invoice_id,
+      action: 'invoiced',
+      diff: { invoice_number: parsed.data.invoice_number ?? null },
+    });
+  })();
   revalidatePath('/invoices');
   revalidatePath(`/invoices/${parsed.data.invoice_id}`);
   return { ok: true };

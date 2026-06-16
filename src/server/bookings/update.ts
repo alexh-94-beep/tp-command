@@ -65,7 +65,9 @@ export async function updateBooking(formData: FormData): Promise<UpdateBookingRe
 
   const { data: existing, error: existErr } = await supabase
     .from('bookings')
-    .select('id, apartment_id, status')
+    .select(
+      'id, apartment_id, status, rental_type, start_date, end_date, contract_status, rent_amount',
+    )
     .eq('id', v.id)
     .single();
   if (existErr || !existing) return { ok: false, error: 'Buchung nicht gefunden.' };
@@ -87,24 +89,25 @@ export async function updateBooking(formData: FormData): Promise<UpdateBookingRe
     }
   }
 
+  const newPatch = {
+    rental_type: v.rental_type,
+    start_date: v.start_date,
+    end_date: v.end_date,
+    rent_amount: v.rent_amount,
+    deposit_amount: v.deposit_amount,
+    short_term_flat_rate: v.short_term_flat_rate ?? null,
+    parking_included: v.parking_included,
+    parking_fee: v.parking_fee ?? null,
+    contract_status: v.contract_status,
+    status: v.status,
+    check_in_status: v.check_in_status,
+    check_out_status: v.check_out_status,
+    external_reference: v.external_reference ?? null,
+    notes: v.notes ?? null,
+  };
   const { error: updateErr } = await supabase
     .from('bookings')
-    .update({
-      rental_type: v.rental_type,
-      start_date: v.start_date,
-      end_date: v.end_date,
-      rent_amount: v.rent_amount,
-      deposit_amount: v.deposit_amount,
-      short_term_flat_rate: v.short_term_flat_rate ?? null,
-      parking_included: v.parking_included,
-      parking_fee: v.parking_fee ?? null,
-      contract_status: v.contract_status,
-      status: v.status,
-      check_in_status: v.check_in_status,
-      check_out_status: v.check_out_status,
-      external_reference: v.external_reference ?? null,
-      notes: v.notes ?? null,
-    })
+    .update(newPatch)
     .eq('id', v.id);
 
   if (updateErr) {
@@ -113,6 +116,32 @@ export async function updateBooking(formData: FormData): Promise<UpdateBookingRe
     }
     return { ok: false, error: updateErr.message };
   }
+
+  // Audit-Log: Buchungs-Aenderung (Phase 16)
+  void (async () => {
+    const { logAuditUpdate } = await import('@/services/audit/log');
+    await logAuditUpdate(supabase, {
+      actorId: user.id,
+      entity: 'booking',
+      entityId: v.id,
+      before: {
+        rental_type: existing.rental_type,
+        start_date: existing.start_date,
+        end_date: existing.end_date,
+        status: existing.status,
+        contract_status: existing.contract_status,
+        rent_amount: existing.rent_amount,
+      },
+      after: {
+        rental_type: newPatch.rental_type,
+        start_date: newPatch.start_date,
+        end_date: newPatch.end_date,
+        status: newPatch.status,
+        contract_status: newPatch.contract_status,
+        rent_amount: newPatch.rent_amount,
+      },
+    });
+  })();
 
   // Workflow-Aufgaben (Phase 4):
   // - fehlende Schritte ergaenzen (z.B. wenn Mietart gewechselt wurde)
