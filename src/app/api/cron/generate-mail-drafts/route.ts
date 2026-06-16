@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/db';
 import { generateUpcomingDrafts } from '@/services/communications/generate-drafts';
+import { isAuthorizedCron } from '@/lib/auth/cron';
 
 /**
  * Taeglicher Cron: erzeugt Mail-Drafts fuer anstehende Buchungs-Ereignisse
@@ -15,9 +16,9 @@ import { generateUpcomingDrafts } from '@/services/communications/generate-draft
  * Auth: Bearer CRON_SECRET. Service-Role-Client (bypasst RLS).
  */
 export async function GET(request: NextRequest) {
-  const expected = process.env.CRON_SECRET;
-  const provided = request.headers.get('authorization');
-  if (!expected || provided !== `Bearer ${expected}`) {
+  if (
+    !isAuthorizedCron(request.headers.get('authorization'), process.env.CRON_SECRET)
+  ) {
     return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 });
   }
 

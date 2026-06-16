@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/db';
+import { isAuthorizedCron } from '@/lib/auth/cron';
 
 /**
  * Markiert ueberfaellige Zahlungen taeglich als 'overdue'.
@@ -13,9 +14,9 @@ import type { Database } from '@/types/db';
  * Auth: Vercel sendet `Authorization: Bearer <CRON_SECRET>`.
  */
 export async function GET(request: NextRequest) {
-  const expected = process.env.CRON_SECRET;
-  const provided = request.headers.get('authorization');
-  if (!expected || provided !== `Bearer ${expected}`) {
+  if (
+    !isAuthorizedCron(request.headers.get('authorization'), process.env.CRON_SECRET)
+  ) {
     return NextResponse.json({ ok: false, error: 'unauthorized' }, { status: 401 });
   }
 
