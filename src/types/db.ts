@@ -1581,6 +1581,7 @@ export type Database = {
       standalone_tasks: {
         Row: {
           apartment_id: string | null
+          apartment_label: string | null
           assignee_id: string | null
           category: Database["public"]["Enums"]["standalone_task_category"]
           created_at: string
@@ -1589,6 +1590,7 @@ export type Database = {
           done_at: string | null
           done_by: string | null
           due_date: string | null
+          due_time: string | null
           id: string
           notes: string | null
           priority: Database["public"]["Enums"]["standalone_task_priority"]
@@ -1598,6 +1600,7 @@ export type Database = {
         }
         Insert: {
           apartment_id?: string | null
+          apartment_label?: string | null
           assignee_id?: string | null
           category?: Database["public"]["Enums"]["standalone_task_category"]
           created_at?: string
@@ -1606,6 +1609,7 @@ export type Database = {
           done_at?: string | null
           done_by?: string | null
           due_date?: string | null
+          due_time?: string | null
           id?: string
           notes?: string | null
           priority?: Database["public"]["Enums"]["standalone_task_priority"]
@@ -1615,6 +1619,7 @@ export type Database = {
         }
         Update: {
           apartment_id?: string | null
+          apartment_label?: string | null
           assignee_id?: string | null
           category?: Database["public"]["Enums"]["standalone_task_category"]
           created_at?: string
@@ -1623,6 +1628,7 @@ export type Database = {
           done_at?: string | null
           done_by?: string | null
           due_date?: string | null
+          due_time?: string | null
           id?: string
           notes?: string | null
           priority?: Database["public"]["Enums"]["standalone_task_priority"]
