@@ -99,6 +99,15 @@ describe('extractBookingNumber', () => {
       '1234567890',
     );
   });
+  it('aus URL-Parameter res_id (Gast-Mail-Body)', () => {
+    const body =
+      'Buchungsnummer:\n<https://admin.booking.com/hotel/hoteladmin/extranet_ng/manage/booking.html?hotel_id=10974973&res_id=5516246212&lang=de>';
+    expect(extractBookingNumber(body)).toBe('5516246212');
+  });
+  it('res_id wird VOR hotel_id bevorzugt', () => {
+    const body = 'hotel_id=10974973&res_id=5113511120';
+    expect(extractBookingNumber(body)).toBe('5113511120');
+  });
   it('keine Nummer → null', () => {
     expect(extractBookingNumber('keine Zahlen hier')).toBeNull();
   });

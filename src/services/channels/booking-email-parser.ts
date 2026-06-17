@@ -127,13 +127,22 @@ export interface ParsedCancellation {
  * Format: rein numerisch, 8–12 Stellen.
  */
 export function extractBookingNumber(text: string): string | null {
-  // Bevorzugt nahe "Buchungs-Nr" / "Booking number" / "Reservation"
+  // 1. URL-Parameter `res_id=NUMMER` — am zuverlaessigsten (Body von
+  //    Gast-Mails enthaelt admin.booking.com-Link mit res_id)
+  const resId = text.match(/[?&]res_id=(\d{8,12})/i);
+  if (resId) return resId[1];
+  // 2. Buchungs-Nr direkt mit Label (Pattern toleriert mehr Whitespace
+  //    incl. Zeilenumbrueche — Booking-Mails haben oft Subject-Wraps)
   const labeled = text.match(
-    /(?:buchungs[-\s]?nummer|buchungs[-\s]?nr|reservation\s*(?:number|nr)?|booking\s*(?:number|id)?|confirmation\s*(?:number|nr)?)\D{0,20}(\d{8,12})/i,
+    /(?:buchungs[-\s]?nummer|buchungs[-\s]?nr|reservation\s*(?:number|nr)?|booking\s*(?:number|id)?|confirmation\s*(?:number|nr)?)[\s:]*(\d{8,12})/i,
   );
   if (labeled) return labeled[1];
-  // Fallback: erste 9–12-stellige Zahl
-  const generic = text.match(/\b(\d{9,12})\b/);
+  // 3. Subject-typisches Format: "(NUMMER, Wochentag, Datum)" oder
+  //    "(NUMMER)"
+  const inParens = text.match(/\(\s*(\d{8,12})[\s,)]/);
+  if (inParens) return inParens[1];
+  // 4. Fallback: erste 9–12-stellige Zahl, ABER ohne hotel_id
+  const generic = text.match(/(?<!hotel_id=)\b(\d{9,12})\b/);
   return generic ? generic[1] : null;
 }
 
