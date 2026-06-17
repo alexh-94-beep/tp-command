@@ -16,6 +16,10 @@
     {
       "path": "/api/cron/generate-mail-drafts",
       "schedule": "10 6 * * *"
+    },
+    {
+      "path": "/api/cron/booking-inbox-poll",
+      "schedule": "0 * * * *"
     }
   ]
 }
