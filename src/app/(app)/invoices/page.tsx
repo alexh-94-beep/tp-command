@@ -114,7 +114,57 @@ export default async function InvoicesPage({
           description="Erfasse eine neue Rechnung — die Buchhalterin sieht sie sobald du sie auf 'Definitiv' setzt."
         />
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+        <>
+        {/* Mobile: Card-Stack */}
+        <div className="space-y-2 md:hidden">
+          {rows.map((r) => {
+            const name = [r.first_name, r.last_name].filter(Boolean).join(' ') || '–';
+            return (
+              <Link
+                key={r.id}
+                href={{ pathname: `/invoices/${r.id}` }}
+                className="block rounded-xl border border-slate-200 bg-white p-3 active:bg-slate-50"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-base font-semibold">{name}</span>
+                      {r.apartment?.number && (
+                        <span className="text-xs text-slate-400">
+                          · {r.apartment.number}
+                        </span>
+                      )}
+                    </div>
+                    {r.subject && (
+                      <div className="mt-0.5 truncate text-sm text-slate-700">
+                        {r.subject}
+                      </div>
+                    )}
+                    <div className="mt-0.5 text-xs text-slate-500">
+                      {formatDate(r.created_at)}
+                      {r.amount_chf != null && (
+                        <span className="ml-2 tabular-nums">
+                          · {formatMoney(Number(r.amount_chf))}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <Badge tone={STATUS_TONE[r.status]}>{STATUS_LABEL[r.status]}</Badge>
+                    {r.invoice_number && (
+                      <div className="mt-0.5 text-[10px] text-slate-500">
+                        Nr. {r.invoice_number}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+
+        {/* Desktop: Tabelle */}
+        <div className="hidden overflow-x-auto rounded-xl border border-slate-200 bg-white md:block">
           <table className="min-w-full divide-y divide-slate-200 text-sm">
             <thead className="bg-slate-50 text-left text-xs tracking-wide text-slate-500 uppercase">
               <tr>
@@ -175,6 +225,7 @@ export default async function InvoicesPage({
             </tbody>
           </table>
         </div>
+        </>
       )}
     </div>
   );

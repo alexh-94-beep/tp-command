@@ -184,7 +184,42 @@ export default async function BookingsPage({
           }
         />
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+        <>
+        {/* Mobile: Card-Stack */}
+        <div className="space-y-2 md:hidden">
+          {rows.map((b) => (
+            <Link
+              key={b.id}
+              href={`/bookings/${b.id}`}
+              className="block rounded-xl border border-slate-200 bg-white p-3 active:bg-slate-50"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-base font-semibold">
+                      {b.apartment?.number ?? '–'}
+                    </span>
+                    <Badge tone="neutral">{rentalTypeLabel[b.rental_type]}</Badge>
+                  </div>
+                  <div className="mt-0.5 text-sm text-slate-700">
+                    {b.tenant
+                      ? `${b.tenant.first_name ?? ''} ${b.tenant.last_name ?? ''}`.trim()
+                      : '—'}
+                  </div>
+                  <div className="mt-0.5 text-xs text-slate-500">
+                    {formatDate(b.start_date)} → {formatEndDate(b.end_date)}
+                    {' · '}
+                    {formatMoney(b.rent_amount)}
+                  </div>
+                </div>
+                <Badge tone={statusTone[b.status]}>{statusLabel[b.status]}</Badge>
+              </div>
+            </Link>
+          ))}
+        </div>
+
+        {/* Desktop: Tabelle */}
+        <div className="hidden overflow-x-auto rounded-xl border border-slate-200 bg-white md:block">
           <table className="min-w-full divide-y divide-slate-200 text-sm">
             <thead className="bg-slate-50 text-left text-xs tracking-wide text-slate-500 uppercase">
               <tr>
@@ -233,6 +268,7 @@ export default async function BookingsPage({
             </tbody>
           </table>
         </div>
+        </>
       )}
     </div>
   );
