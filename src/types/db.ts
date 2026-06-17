@@ -1578,6 +1578,56 @@ export type Database = {
           },
         ]
       }
+      processed_emails: {
+        Row: {
+          action: Database["public"]["Enums"]["processed_email_action"]
+          error: string | null
+          external_uid: string | null
+          from_address: string | null
+          id: string
+          imap_uid: number | null
+          message_id: string
+          processed_at: string
+          raw_excerpt: string | null
+          reservation_id: string | null
+          subject: string | null
+        }
+        Insert: {
+          action: Database["public"]["Enums"]["processed_email_action"]
+          error?: string | null
+          external_uid?: string | null
+          from_address?: string | null
+          id?: string
+          imap_uid?: number | null
+          message_id: string
+          processed_at?: string
+          raw_excerpt?: string | null
+          reservation_id?: string | null
+          subject?: string | null
+        }
+        Update: {
+          action?: Database["public"]["Enums"]["processed_email_action"]
+          error?: string | null
+          external_uid?: string | null
+          from_address?: string | null
+          id?: string
+          imap_uid?: number | null
+          message_id?: string
+          processed_at?: string
+          raw_excerpt?: string | null
+          reservation_id?: string | null
+          subject?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "processed_emails_reservation_id_fkey"
+            columns: ["reservation_id"]
+            isOneToOne: false
+            referencedRelation: "pending_reservations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       standalone_tasks: {
         Row: {
           apartment_id: string | null
@@ -2277,6 +2327,7 @@ export type Database = {
         | "parking"
         | "other"
       pending_reservation_status: "pending" | "assigned" | "cancelled"
+      processed_email_action: "new_reservation" | "cancellation" | "skipped"
       rental_type: "long_term" | "short_term" | "booking"
       residence_permit:
         | "C"
@@ -3019,6 +3070,7 @@ export const Constants = {
         "other",
       ],
       pending_reservation_status: ["pending", "assigned", "cancelled"],
+      processed_email_action: ["new_reservation", "cancellation", "skipped"],
       rental_type: ["long_term", "short_term", "booking"],
       residence_permit: [
         "C",
