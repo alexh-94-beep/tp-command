@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cancelPendingReservation } from '@/server/channels/pending';
@@ -73,16 +74,37 @@ export default function PendingReservationsList({ rows }: { rows: Row[] }) {
                     <Badge tone="info">{r.channel_label}</Badge>
                   </td>
                   <td className="px-4 py-3 font-mono text-xs whitespace-nowrap">
-                    {r.external_uid}
+                    <Link
+                      href={`/bookings/pending/${r.id}` as never}
+                      className="hover:underline"
+                    >
+                      {r.external_uid}
+                    </Link>
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">{formatDate(r.start_date)}</td>
                   <td className="px-4 py-3 whitespace-nowrap">{formatDate(r.end_date)}</td>
-                  <td className="px-4 py-3 text-slate-600">{r.summary ?? '–'}</td>
+                  <td className="px-4 py-3 text-slate-600">
+                    <Link
+                      href={`/bookings/pending/${r.id}` as never}
+                      className="hover:underline"
+                    >
+                      {r.summary ?? (
+                        <span className="text-slate-400 italic">
+                          öffnen + Name ergänzen
+                        </span>
+                      )}
+                    </Link>
+                  </td>
                   <td className="px-4 py-3 text-center text-slate-600">
                     {r.guest_count ?? '–'}
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">
                     <div className="flex justify-end gap-2">
+                      <Link href={`/bookings/pending/${r.id}` as never}>
+                        <Button size="sm" variant="secondary">
+                          Öffnen
+                        </Button>
+                      </Link>
                       <Button
                         size="sm"
                         variant="secondary"

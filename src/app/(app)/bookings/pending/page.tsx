@@ -9,7 +9,8 @@ import PendingReservationsList from './pending-list';
 export const metadata = { title: 'Pool-Reservationen' };
 
 export default async function PendingPage() {
-  await requireRole(['admin', 'office']);
+  // Phase 20f: Mireme (cleaning) verteilt die Booking-Pool-Buchungen
+  await requireRole(['admin', 'office', 'cleaning']);
 
   const supabase = await createSupabaseServerClient();
   const { data } = await supabase
