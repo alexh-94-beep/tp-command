@@ -124,7 +124,9 @@ export default async function CleaningPage({
       : query.eq('id', '00000000-0000-0000-0000-000000000000'); // leeres Resultat
   }
 
-  const { data: tasks } = await query;
+  // Phase 19: Limit 500 — UI-Liste zeigt nie mehr,
+  // schuetzt vor unbeabsichtigtem Full-Scan bei range='all'
+  const { data: tasks } = await query.limit(500);
 
   // Office/Admin haben volle Rechte. Mireme (cleaning) darf seit Phase 15
   // selber Reinigungsauftraege erfassen, aber keinen Cityus-Import, keine

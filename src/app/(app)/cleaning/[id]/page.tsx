@@ -94,14 +94,19 @@ export default async function CleaningDetailPage({
     .eq('cleaning_task_id', task.id)
     .order('created_at', { ascending: false });
 
-  const photosWithUrl = await Promise.all(
-    (photos ?? []).map(async (p) => {
-      const { data } = await supabase.storage
-        .from('cleaning-photos')
-        .createSignedUrl(p.storage_path, 60 * 60);
-      return { ...p, url: data?.signedUrl ?? null };
-    }),
+  // Phase 19: createSignedUrls (plural) statt N parallele createSignedUrl —
+  // eine Storage-Round-trip anstelle einer pro Photo.
+  const paths = (photos ?? []).map((p) => p.storage_path);
+  const { data: signed } = paths.length
+    ? await supabase.storage.from('cleaning-photos').createSignedUrls(paths, 60 * 60)
+    : { data: [] as Array<{ path: string | null; signedUrl: string }> };
+  const urlByPath = new Map(
+    (signed ?? []).map((s) => [s.path ?? '', s.signedUrl] as const),
   );
+  const photosWithUrl = (photos ?? []).map((p) => ({
+    ...p,
+    url: urlByPath.get(p.storage_path) ?? null,
+  }));
 
   return (
     <div className="space-y-6">
