@@ -1,15 +1,18 @@
 import { describe, it, expect } from 'vitest';
 import {
   isBookingSender,
+  isGuestProxyAddress,
   classifyBookingEmail,
   extractBookingNumber,
   extractDates,
+  extractDateFromSubject,
   normalizeDate,
   extractGuestCount,
   extractGuestName,
   extractBookingDetailUrl,
   parseNewReservation,
   parseCancellation,
+  parseGuestMessage,
 } from './booking-email-parser';
 
 describe('isBookingSender', () => {
@@ -186,6 +189,91 @@ describe('extractBookingDetailUrl', () => {
   });
   it('keine booking-URL → null', () => {
     expect(extractBookingDetailUrl('https://example.com/foo')).toBeNull();
+  });
+  it('Domain-only wird abgelehnt (Tipp-Text-Schutz)', () => {
+    const body =
+      'Stellen Sie sicher, dass Ihre URL https://admin.booking.com. lautet.';
+    expect(extractBookingDetailUrl(body)).toBeNull();
+  });
+  it('URL mit Pfad ohne res_id wird akzeptiert', () => {
+    const body = 'Login: https://admin.booking.com/login';
+    expect(extractBookingDetailUrl(body)).toContain('/login');
+  });
+  it('Trailing-Punkt wird entfernt', () => {
+    const body = 'Link: https://admin.booking.com/reservation?bn=42.';
+    const url = extractBookingDetailUrl(body);
+    expect(url).toBe('https://admin.booking.com/reservation?bn=42');
+  });
+});
+
+describe('extractDateFromSubject', () => {
+  it('DE Standard: "(NR, Wochentag, Tag. Monat Jahr)"', () => {
+    expect(
+      extractDateFromSubject(
+        'Booking.com - Eine neue Buchung! (5113511120, Mittwoch, 17. Juni 2026)',
+      ),
+    ).toBe('2026-06-17');
+  });
+  it('EN Variante', () => {
+    expect(
+      extractDateFromSubject('New reservation! (5113511120, Wednesday, 17 June 2026)'),
+    ).toBe('2026-06-17');
+  });
+  it('kein Datum im Subject → null', () => {
+    expect(extractDateFromSubject('Booking ohne Datum')).toBeNull();
+  });
+  it('null/leer → null', () => {
+    expect(extractDateFromSubject(null)).toBeNull();
+    expect(extractDateFromSubject('')).toBeNull();
+  });
+});
+
+describe('isGuestProxyAddress', () => {
+  it('@guest.booking.com → true', () => {
+    expect(
+      isGuestProxyAddress(
+        '"Esther Buchmüller über Booking.com" <6238361486-x@guest.booking.com>',
+      ),
+    ).toBe(true);
+  });
+  it('normale Booking-Adresse → false', () => {
+    expect(isGuestProxyAddress('noreply@booking.com')).toBe(false);
+  });
+});
+
+describe('parseGuestMessage', () => {
+  it('extrahiert Name aus From-Display + UID aus Body', () => {
+    const r = parseGuestMessage(
+      '"Esther Buchmüller über Booking.com" <6238361486-x@guest.booking.com>',
+      'Wir haben diese Nachricht von Esther Buchmüller erhalten',
+      'Buchungsnummer: 6238361486\nSie haben eine neue Nachricht von einem Gast',
+    );
+    expect(r).toEqual({
+      externalUid: '6238361486',
+      guestName: 'Esther Buchmüller',
+    });
+  });
+  it('Subject-Pattern wenn From keinen Display-Name hat', () => {
+    const r = parseGuestMessage(
+      'noreply@guest.booking.com',
+      'Wir haben diese Nachricht von Max Mustermann erhalten',
+      'Buchungsnummer: 1111111111',
+    );
+    expect(r?.guestName).toBe('Max Mustermann');
+  });
+  it('ohne UID → null', () => {
+    expect(parseGuestMessage('a@guest.booking.com', 'foo', 'no number')).toBeNull();
+  });
+});
+
+describe('classifyBookingEmail: Gast-Nachricht', () => {
+  it('From @guest.booking.com → guest_message', () => {
+    expect(
+      classifyBookingEmail(
+        '<x@guest.booking.com>',
+        'Wir haben diese Nachricht von Esther erhalten',
+      ),
+    ).toBe('guest_message');
   });
 });
 

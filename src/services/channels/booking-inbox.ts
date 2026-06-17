@@ -19,6 +19,7 @@ import {
   classifyBookingEmail,
   parseNewReservation,
   parseCancellation,
+  parseGuestMessage,
 } from './booking-email-parser';
 
 export interface InboxConfig {
@@ -34,6 +35,7 @@ export interface PollResult {
   fetched: number;
   newReservations: number;
   cancellations: number;
+  guestMessages: number;
   skipped: number;
   errors: string[];
 }
@@ -51,6 +53,7 @@ export async function pollBookingInbox(
     fetched: 0,
     newReservations: 0,
     cancellations: 0,
+    guestMessages: 0,
     skipped: 0,
     errors: [],
   };
@@ -140,6 +143,42 @@ export async function pollBookingInbox(
               raw_excerpt: body.slice(0, 200),
             });
             result.newReservations += 1;
+            continue;
+          }
+
+          if (kind === 'guest_message') {
+            const g = parseGuestMessage(from, subject, body);
+            if (!g) {
+              await supabase.from('processed_emails').insert({
+                message_id: messageId,
+                imap_uid: Number(uid),
+                subject,
+                from_address: from,
+                action: 'skipped',
+                error: 'Gast-Nachricht: Buchungs-Nr nicht extrahierbar',
+                raw_excerpt: body.slice(0, 200),
+              });
+              result.skipped += 1;
+              continue;
+            }
+            const { reservationId, action } = await applyGuestMessage(
+              supabase,
+              g.externalUid,
+              g.guestName,
+              subject ?? '',
+            );
+            await supabase.from('processed_emails').insert({
+              message_id: messageId,
+              imap_uid: Number(uid),
+              subject,
+              from_address: from,
+              action,
+              external_uid: g.externalUid,
+              reservation_id: reservationId,
+              raw_excerpt: body.slice(0, 200),
+            });
+            if (action === 'guest_message') result.guestMessages += 1;
+            else result.skipped += 1;
             continue;
           }
 
@@ -320,4 +359,92 @@ async function applyCancellation(
 
   // Storno fuer eine Reservation, die wir gar nicht haben → loggen, sonst nix
   return null;
+}
+
+/**
+ * Behandelt eine Gast-Nachricht: extrahiert Gast-Name + Buchungs-Nr,
+ * traegt den Namen an der bestehenden pending_reservation nach (falls
+ * noch nicht gesetzt) und legt einen standalone_task fuer Office an,
+ * damit jemand im Booking-Extranet antwortet.
+ *
+ * Liefert reservation_id (falls eine existiert) + die action, die ins
+ * processed_emails-Log soll: 'guest_message' wenn alles geklappt hat,
+ * 'skipped' wenn die Reservation gar nicht im System ist (z.B. alte
+ * Buchung von vor IMAP-Start).
+ */
+async function applyGuestMessage(
+  supabase: SupabaseClient<Database>,
+  externalUid: string,
+  guestName: string | null,
+  subject: string,
+): Promise<{ reservationId: string | null; action: 'guest_message' | 'skipped' }> {
+  const { data: channel } = await supabase
+    .from('channels')
+    .select('id')
+    .eq('code', 'booking_com')
+    .maybeSingle();
+  if (!channel) return { reservationId: null, action: 'skipped' };
+
+  const { data: reservation } = await supabase
+    .from('pending_reservations')
+    .select('id, summary, assigned_booking_id, status')
+    .eq('channel_id', channel.id)
+    .eq('external_uid', externalUid)
+    .maybeSingle();
+
+  // Wenn wir die Reservation nicht haben: nur loggen (alte Buchung)
+  if (!reservation) {
+    return { reservationId: null, action: 'skipped' };
+  }
+
+  // Wenn summary noch keinen erkennbaren Namen hat, nachtragen
+  if (guestName) {
+    const hasName =
+      reservation.summary &&
+      !reservation.summary.startsWith('Booking-Nr ') &&
+      reservation.summary.length > 0;
+    if (!hasName) {
+      const newSummary = `Booking-Nr ${externalUid} · ${guestName}`;
+      await supabase
+        .from('pending_reservations')
+        .update({ summary: newSummary })
+        .eq('id', reservation.id);
+    }
+  }
+
+  // Standalone-Task fuer Office: "Booking-Gast schreibt — antworten"
+  // Nur einmal pro Buchungs-Nr — wenn schon ein offener Task da ist, skip.
+  const taskTitle = `Booking-Gast schreibt: ${guestName ?? `Buchung ${externalUid}`}`;
+  const { data: existingTask } = await supabase
+    .from('standalone_tasks')
+    .select('id')
+    .eq('title', taskTitle)
+    .in('status', ['open', 'in_progress'])
+    .maybeSingle();
+  if (!existingTask) {
+    await supabase.from('standalone_tasks').insert({
+      title: taskTitle,
+      description:
+        `Booking.com-Gast hat eine Nachricht geschickt.\n\n` +
+        `Buchungs-Nr: ${externalUid}\n` +
+        `Subject: ${subject}\n\n` +
+        `Im Booking-Extranet antworten.`,
+      category: 'office',
+      priority: 'normal',
+      status: 'open',
+    });
+  }
+
+  // Audit
+  await supabase.from('audit_log').insert({
+    actor_id: null,
+    entity_type: 'pending_reservation',
+    entity_id: reservation.id,
+    action: 'updated',
+    diff: {
+      _note: `Gast-Nachricht eingegangen (${guestName ?? '—'})`,
+    },
+  });
+
+  return { reservationId: reservation.id, action: 'guest_message' };
 }
