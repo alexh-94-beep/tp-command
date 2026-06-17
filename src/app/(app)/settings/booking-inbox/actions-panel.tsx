@@ -26,6 +26,9 @@ export default function BookingInboxActions() {
     newReservations?: number;
     cancellations?: number;
     guestMessages?: number;
+    modifications?: number;
+    arrivalsSummaries?: number;
+    arrivalsUpdated?: number;
     skipped?: number;
     errors?: string[];
   } | null>(null);
@@ -98,6 +101,9 @@ export default function BookingInboxActions() {
                 Neu: <strong>{poll.newReservations}</strong> ·{' '}
                 Storno: <strong>{poll.cancellations}</strong> ·{' '}
                 Gast-Nachricht: <strong>{poll.guestMessages ?? 0}</strong> ·{' '}
+                Geändert: <strong>{poll.modifications ?? 0}</strong> ·{' '}
+                Tagesübersicht: <strong>{poll.arrivalsSummaries ?? 0}</strong> ·{' '}
+                Daten nachgereicht: <strong>{poll.arrivalsUpdated ?? 0}</strong> ·{' '}
                 Ignoriert: <strong>{poll.skipped}</strong>
                 {poll.errors && poll.errors.length > 0 && (
                   <ul className="mt-2 list-disc pl-5 text-xs text-amber-800">

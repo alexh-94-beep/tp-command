@@ -127,30 +127,69 @@ export interface ArrivalsSummaryEntry {
   externalUid: string;
   guestName: string | null;
   bookingDetailUrl: string | null;
+  /** Anreise YYYY-MM-DD, falls aus Tabellenzeile ablesbar */
+  startDate: string | null;
+  /** Abreise YYYY-MM-DD, falls aus Tabellenzeile ablesbar */
+  endDate: string | null;
 }
 
 /**
  * Extrahiert alle Buchungs-Nrn aus einer "Reservations with today's or
  * tomorrow's arrival date"-Mail. Booking listet sie als Tabelle mit
- * res_id-Links — wir gehen ueber alle Links durch und deduplizieren
- * nach externalUid.
+ * res_id-Links. Pro Buchung typischerweise drei Zeilen:
+ *
+ *   5269073028
+ *   <https://admin.booking.com/.../booking.html?res_id=5269073028&hotel_id=...>
+ *   Frank Castrup\t 14 Jun 2026 \t15 Jun 2026
+ *
+ * Wir matchen den UID-Block und lesen aus der Folgezeile Gast-Name +
+ * Daten (englisches "DD MMM YYYY"-Format). Wenn nicht lesbar bleiben
+ * die Felder null und Office sieht es im Extranet.
  */
 export function parseArrivalsSummary(body: string): ArrivalsSummaryEntry[] {
   const seen = new Set<string>();
   const entries: ArrivalsSummaryEntry[] = [];
 
-  // Alle res_id-URLs sammeln
-  const urlMatches = body.matchAll(
-    /https?:\/\/[^\s<>"']*booking\.com[^\s<>"']*[?&]res_id=(\d{8,12})[^\s<>"']*/gi,
-  );
-  for (const m of urlMatches) {
+  // Pro Buchung den Block "UID … res_id=UID … Name<TAB>DD MMM YYYY<TAB>DD MMM YYYY"
+  // Wir suchen die URL und greifen dann ein bis zwei Zeilen weiter nach der
+  // Zeile mit zwei "DD MMM YYYY"-Daten.
+  const lines = body.split(/\r?\n/);
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const m = line.match(
+      /https?:\/\/[^\s<>"']*booking\.com[^\s<>"']*[?&]res_id=(\d{8,12})[^\s<>"']*/i,
+    );
+    if (!m) continue;
     const uid = m[1];
     if (seen.has(uid)) continue;
     seen.add(uid);
+
+    // Suche in den naechsten 3 Zeilen nach "Name<TAB/Whitespace> DD MMM YYYY <TAB/Whitespace> DD MMM YYYY"
+    let startDate: string | null = null;
+    let endDate: string | null = null;
+    let guestName: string | null = null;
+    for (let j = i + 1; j < Math.min(i + 4, lines.length); j++) {
+      const row = lines[j];
+      const datePair = row.match(
+        /^(.*?)[\s\t]+(\d{1,2}\s+[A-Za-z]{3}\s+\d{4})[\s\t]+(\d{1,2}\s+[A-Za-z]{3}\s+\d{4})\s*$/,
+      );
+      if (datePair) {
+        const namePart = datePair[1].trim();
+        if (namePart && !namePart.startsWith('<') && !/^\d+$/.test(namePart)) {
+          guestName = namePart;
+        }
+        startDate = normalizeDate(datePair[2]);
+        endDate = normalizeDate(datePair[3]);
+        break;
+      }
+    }
+
     entries.push({
       externalUid: uid,
-      guestName: null, // Tabellen-Parse ist fragil; Office sieht Name im Extranet
+      guestName,
       bookingDetailUrl: cleanTrailingPunct(m[0]),
+      startDate,
+      endDate,
     });
   }
 
@@ -302,24 +341,39 @@ function iso(year: string, month: string, day: string): string {
 function monthFromName(name: string): number | null {
   const map: Record<string, number> = {
     january: 1,
+    jan: 1,
     februar: 2,
     february: 2,
+    feb: 2,
     march: 3,
     märz: 3,
+    mar: 3,
+    mär: 3,
     april: 4,
+    apr: 4,
     may: 5,
     mai: 5,
     june: 6,
     juni: 6,
+    jun: 6,
     july: 7,
     juli: 7,
+    jul: 7,
     august: 8,
+    aug: 8,
     september: 9,
+    sep: 9,
+    sept: 9,
     october: 10,
     oktober: 10,
+    oct: 10,
+    okt: 10,
     november: 11,
+    nov: 11,
     december: 12,
     dezember: 12,
+    dec: 12,
+    dez: 12,
     januar: 1,
   };
   return map[name.toLowerCase()] ?? null;
