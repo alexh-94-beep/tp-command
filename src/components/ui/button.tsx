@@ -12,10 +12,12 @@ const variants: Record<Variant, string> = {
   danger: 'bg-red-600 text-white hover:bg-red-700 disabled:opacity-50',
 };
 
+// Mobile-first Tap-Targets: <md mind. 44px Höhe (iOS HIG / Android MD),
+// ab md die kompakteren Desktop-Höhen.
 const sizes: Record<Size, string> = {
-  sm: 'h-8 px-3 text-xs',
-  md: 'h-9 px-4 text-sm',
-  lg: 'h-11 px-5 text-base',
+  sm: 'h-11 px-3 text-xs md:h-8',
+  md: 'h-11 px-4 text-sm md:h-9',
+  lg: 'h-12 px-5 text-base md:h-11',
 };
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {

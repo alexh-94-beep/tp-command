@@ -23,7 +23,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           userRoleLabel={roleLabel[user.role] ?? user.role}
         />
         <Topbar user={user} />
-        <main className="flex-1 overflow-auto p-3 sm:p-4 md:p-6">{children}</main>
+        <main
+          className="flex-1 overflow-auto p-3 sm:p-4 md:p-6"
+          style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
+        >
+          {children}
+        </main>
       </div>
     </div>
   );

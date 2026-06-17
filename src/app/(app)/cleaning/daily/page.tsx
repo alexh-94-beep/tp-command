@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { todayIso } from '@/lib/dates';
 import DailyToolbar from './daily-toolbar';
 import DailyBoard, { type DailyStaff, type DailyTask } from './daily-board';
+import DailyBoardMobile from './daily-board-mobile';
 
 export const metadata = { title: 'Tagesplan Reinigung' };
 
@@ -86,7 +87,16 @@ export default async function DailyPage({
 
       <DailyToolbar date={date} />
 
-      <DailyBoard date={date} initialStaff={dailyStaff} initialTasks={dailyTasks} />
+      <div className="md:hidden">
+        <DailyBoardMobile
+          date={date}
+          initialStaff={dailyStaff}
+          initialTasks={dailyTasks}
+        />
+      </div>
+      <div className="hidden md:block">
+        <DailyBoard date={date} initialStaff={dailyStaff} initialTasks={dailyTasks} />
+      </div>
     </div>
   );
 }
