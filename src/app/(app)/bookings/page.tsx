@@ -95,7 +95,8 @@ export default async function BookingsPage({
       .lte('end_date', next7Iso);
   }
 
-  const { data } = await query;
+  // Phase 19: Limit 500 — schuetzt vor unbeabsichtigtem Full-Scan
+  const { data } = await query.limit(500);
   const rows = data ?? [];
 
   const eventLabel: Record<NonNullable<SearchParams['event']>, string> = {
