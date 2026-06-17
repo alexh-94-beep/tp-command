@@ -41,6 +41,8 @@ export interface PollResult {
   guestMessages: number;
   modifications: number;
   arrivalsSummaries: number;
+  /** Pool-Reservationen, die per Tagesübersicht Daten/Name nachgereicht bekommen haben */
+  arrivalsUpdated: number;
   skipped: number;
   errors: string[];
 }
@@ -61,6 +63,7 @@ export async function pollBookingInbox(
     guestMessages: 0,
     modifications: 0,
     arrivalsSummaries: 0,
+    arrivalsUpdated: 0,
     skipped: 0,
     errors: [],
   };
@@ -225,7 +228,7 @@ export async function pollBookingInbox(
 
           if (kind === 'arrivals_summary') {
             const entries = parseArrivalsSummary(body);
-            const added = await applyArrivalsSummary(supabase, entries);
+            const { added, updated } = await applyArrivalsSummary(supabase, entries);
             await supabase.from('processed_emails').insert({
               message_id: messageId,
               imap_uid: Number(uid),
@@ -233,9 +236,10 @@ export async function pollBookingInbox(
               from_address: from,
               action: 'arrivals_summary',
               raw_excerpt: body.slice(0, 5000),
-              error: `${entries.length} Anreisen erkannt, ${added} neu angelegt`,
+              error: `${entries.length} Anreisen erkannt, ${added} neu, ${updated} aktualisiert`,
             });
             result.arrivalsSummaries += 1;
+            result.arrivalsUpdated += updated;
             continue;
           }
 
@@ -734,54 +738,120 @@ async function applyBookingModified(
 
 /**
  * Arrivals-Summary verarbeiten: pro Eintrag prüfen ob bereits eine
- * Pool-Reservation oder zugewiesene Buchung existiert. Falls nicht:
- * anlegen mit Hinweis "aus Tagesübersicht" — Sicherheitsnetz, falls
- * eine Bestätigungs-Mail verloren gegangen ist.
+ * Pool-Reservation existiert.
+ *  - Nicht vorhanden → anlegen (Safety-Net, Bestätigungs-Mail verloren).
+ *  - Vorhanden, noch nicht zugewiesen → Daten/Name backfillen, sofern die
+ *    Tagesübersicht echte Tabellen-Daten liefert und etwas davon
+ *    abweicht. Audit-Log-Eintrag pro Update.
+ *  - Vorhanden + zugewiesen → unverändert lassen.
  *
- * Liefert die Anzahl neu angelegter Reservationen.
+ * Liefert die Zähler { added, updated }.
  */
 async function applyArrivalsSummary(
   supabase: SupabaseClient<Database>,
-  entries: { externalUid: string; bookingDetailUrl: string | null }[],
-): Promise<number> {
-  if (entries.length === 0) return 0;
+  entries: {
+    externalUid: string;
+    bookingDetailUrl: string | null;
+    guestName: string | null;
+    startDate: string | null;
+    endDate: string | null;
+  }[],
+): Promise<{ added: number; updated: number }> {
+  if (entries.length === 0) return { added: 0, updated: 0 };
   const { data: channel } = await supabase
     .from('channels')
     .select('id')
     .eq('code', 'booking_com')
     .maybeSingle();
-  if (!channel) return 0;
+  if (!channel) return { added: 0, updated: 0 };
 
   let added = 0;
+  let updated = 0;
   for (const e of entries) {
     const { data: existing } = await supabase
       .from('pending_reservations')
-      .select('id')
+      .select(
+        'id, start_date, end_date, summary, description, status, assigned_booking_id, raw_payload',
+      )
       .eq('channel_id', channel.id)
       .eq('external_uid', e.externalUid)
       .maybeSingle();
-    if (existing) continue;
 
-    const today = new Date().toISOString().slice(0, 10);
-    const { error } = await supabase
-      .from('pending_reservations')
-      .insert({
-        channel_id: channel.id,
-        external_uid: e.externalUid,
-        start_date: today,
-        end_date: addOneDay(today),
-        summary: `Booking-Nr ${e.externalUid} (aus Tagesübersicht)`,
-        description:
-          'Aus Tagesübersicht-Mail erfasst — Bestätigungs-Mail fehlt.\n' +
-          'Bitte im Booking-Extranet Datum und Gast-Namen verifizieren.\n\n' +
-          (e.bookingDetailUrl ? `Booking-Extranet: ${e.bookingDetailUrl}` : ''),
-        status: 'pending',
-        raw_payload: {
-          source: 'arrivals_summary',
-          bookingDetailUrl: e.bookingDetailUrl,
+    if (existing) {
+      // Nur pending + noch nicht zugewiesen: Daten/Name nachreichen
+      if (
+        existing.status !== 'pending' ||
+        existing.assigned_booking_id != null ||
+        !e.startDate ||
+        !e.endDate
+      ) {
+        continue;
+      }
+      const dateChanged =
+        existing.start_date !== e.startDate || existing.end_date !== e.endDate;
+      const newSummary = e.guestName
+        ? `Booking-Nr ${e.externalUid} · ${e.guestName}`
+        : existing.summary;
+      const summaryChanged =
+        e.guestName != null &&
+        (existing.summary == null || !existing.summary.includes(e.guestName));
+      if (!dateChanged && !summaryChanged) continue;
+
+      const { error: updErr } = await supabase
+        .from('pending_reservations')
+        .update({
+          start_date: e.startDate,
+          end_date: e.endDate,
+          summary: newSummary,
+        })
+        .eq('id', existing.id);
+      if (updErr) continue;
+
+      await supabase.from('audit_log').insert({
+        actor_id: null,
+        entity_type: 'pending_reservation',
+        entity_id: existing.id,
+        action: 'updated',
+        diff: {
+          start_date: { before: existing.start_date, after: e.startDate },
+          end_date: { before: existing.end_date, after: e.endDate },
+          summary: { before: existing.summary, after: newSummary },
+          _note: 'Backfill aus Tagesübersicht-Mail',
         } as never,
       });
+      updated += 1;
+      continue;
+    }
+
+    // Neu anlegen — wenn Tabellen-Daten da sind, nimm sie; sonst Placeholder
+    const today = new Date().toISOString().slice(0, 10);
+    const startDate = e.startDate ?? today;
+    const endDate = e.endDate ?? addOneDay(startDate);
+    const summary = e.guestName
+      ? `Booking-Nr ${e.externalUid} · ${e.guestName} (aus Tagesübersicht)`
+      : `Booking-Nr ${e.externalUid} (aus Tagesübersicht)`;
+    const description =
+      'Aus Tagesübersicht-Mail erfasst — Bestätigungs-Mail fehlt.\n' +
+      (e.startDate
+        ? 'Daten aus Tabellenzeile der Tagesübersicht.\n'
+        : 'Bitte im Booking-Extranet Datum und Gast-Namen verifizieren.\n') +
+      '\n' +
+      (e.bookingDetailUrl ? `Booking-Extranet: ${e.bookingDetailUrl}` : '');
+    const { error } = await supabase.from('pending_reservations').insert({
+      channel_id: channel.id,
+      external_uid: e.externalUid,
+      start_date: startDate,
+      end_date: endDate,
+      summary,
+      description,
+      status: 'pending',
+      raw_payload: {
+        source: 'arrivals_summary',
+        bookingDetailUrl: e.bookingDetailUrl,
+        guestName: e.guestName,
+      } as never,
+    });
     if (!error) added += 1;
   }
-  return added;
+  return { added, updated };
 }

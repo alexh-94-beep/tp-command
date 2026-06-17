@@ -342,6 +342,40 @@ describe('parseArrivalsSummary', () => {
     expect(r.map((e) => e.externalUid).sort()).toEqual(['5113511120', '6189411548']);
     expect(r[0].bookingDetailUrl).toContain('res_id=5113511120');
   });
+  it('liest Name + Daten aus Tabellenzeile', () => {
+    const body = [
+      '5269073028',
+      '<https://admin.booking.com/hotel/hoteladmin/extranet_ng/manage/booking.html?res_id=5269073028&hotel_id=10974973&lang=>',
+      'Frank Castrup\t 14 Jun 2026 \t15 Jun 2026',
+      '',
+      '5326600574',
+      '<https://admin.booking.com/hotel/hoteladmin/extranet_ng/manage/booking.html?res_id=5326600574&hotel_id=10974973&lang=>',
+      'Yongmei Leng\t 14 Jun 2026 \t19 Jun 2026',
+    ].join('\n');
+    const r = parseArrivalsSummary(body);
+    expect(r.length).toBe(2);
+    expect(r[0]).toMatchObject({
+      externalUid: '5269073028',
+      guestName: 'Frank Castrup',
+      startDate: '2026-06-14',
+      endDate: '2026-06-15',
+    });
+    expect(r[1]).toMatchObject({
+      externalUid: '5326600574',
+      guestName: 'Yongmei Leng',
+      startDate: '2026-06-14',
+      endDate: '2026-06-19',
+    });
+  });
+  it('ohne Tabellenzeile → Name/Daten null', () => {
+    const body =
+      '<https://admin.booking.com/hotel/hoteladmin/extranet_ng/manage/booking.html?res_id=5113511120>';
+    const r = parseArrivalsSummary(body);
+    expect(r.length).toBe(1);
+    expect(r[0].guestName).toBeNull();
+    expect(r[0].startDate).toBeNull();
+    expect(r[0].endDate).toBeNull();
+  });
   it('leerer Body → leere Liste', () => {
     expect(parseArrivalsSummary('keine URLs hier')).toEqual([]);
   });
