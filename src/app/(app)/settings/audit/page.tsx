@@ -22,6 +22,8 @@ const ENTITY_LABEL: Record<AuditEntity, string> = {
   apartment_damage: 'Schaden',
   pending_reservation: 'Pool-Reservation',
   external_owner: 'Eigentümer',
+  parking_spot: 'Parkplatz',
+  parking_assignment: 'PP-Belegung',
   user: 'User',
 };
 
@@ -35,6 +37,8 @@ const ENTITY_HREF: Record<AuditEntity, ((id: string) => string) | null> = {
   apartment_damage: null,
   pending_reservation: null,
   external_owner: null,
+  parking_spot: (id) => `/settings/parking/${id}`,
+  parking_assignment: null,
   user: null,
 };
 

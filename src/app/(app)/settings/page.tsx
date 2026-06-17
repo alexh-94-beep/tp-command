@@ -65,6 +65,17 @@ export default async function SettingsPage() {
           </p>
         </Link>
 
+        <Link
+          href={{ pathname: '/settings/parking' }}
+          className="rounded-xl border border-slate-200 bg-white p-6 transition hover:border-slate-300 hover:shadow-sm"
+        >
+          <h2 className="text-base font-medium">Parkplätze</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            97 Tiefgaragen-Plätze. W&amp;W-Mieterspiegel-Import +
+            Booking-Belegungen. Verhindert Doppelbuchungen.
+          </p>
+        </Link>
+
         <div
           aria-disabled
           title="Folgt in einer späteren Phase"

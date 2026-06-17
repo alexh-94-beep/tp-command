@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Check,
   CircleDot,
@@ -24,6 +25,10 @@ import {
   updateTaskNotes,
 } from '@/server/workflow/actions';
 import { setBookingParking } from '@/server/bookings/set-parking';
+import {
+  assignBookingParkingFromTask,
+  getAvailableBookingParkingSpots,
+} from '@/server/parking/actions';
 
 export interface BookingTaskRow {
   id: string;
@@ -306,6 +311,9 @@ function TaskRow({
               }
             />
           )}
+          {task.code === 'booking_parking_assign' && !isDone && task.status === 'open' && (
+            <ParkingAssignPicker bookingId={bookingId} taskId={task.id} />
+          )}
           {(task.notes || showNotes) && (
             <div className="mt-1">
               {showNotes ? (
@@ -555,6 +563,88 @@ function RegenerateButton({ bookingId, hasAny }: { bookingId: string; hasAny: bo
  * Beantwortet die Frage direkt + reaktiviert die conditional Tasks
  * (Parkplatz-Zuweisung, Anleitung senden) via setBookingParking.
  */
+function ParkingAssignPicker({
+  bookingId,
+  taskId,
+}: {
+  bookingId: string;
+  taskId: string;
+}) {
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const [spots, setSpots] = useState<
+    Array<{ id: string; number: number; warning: string | null }> | null
+  >(null);
+  const [error, setError] = useState<string | null>(null);
+
+  function load() {
+    setError(null);
+    startTransition(async () => {
+      const r = await getAvailableBookingParkingSpots(bookingId);
+      if (!r.ok) setError(r.error ?? 'Fehler');
+      else setSpots(r.spots ?? []);
+    });
+  }
+
+  function pick(spotId: string) {
+    setError(null);
+    startTransition(async () => {
+      const fd = new FormData();
+      fd.set('task_id', taskId);
+      fd.set('spot_id', spotId);
+      const r = await assignBookingParkingFromTask(fd);
+      if (!r.ok) {
+        setError(r.error ?? 'Fehler');
+        return;
+      }
+      router.refresh();
+    });
+  }
+
+  return (
+    <div className="mt-2 rounded-md border border-blue-200 bg-blue-50 p-3 text-xs">
+      <div className="mb-2 font-medium text-blue-900">
+        Parkplatz aus Booking-Pool zuteilen
+      </div>
+      {error && <div className="mb-2 text-red-700">{error}</div>}
+      {!spots && (
+        <Button
+          type="button"
+          size="sm"
+          variant="secondary"
+          onClick={load}
+          disabled={pending}
+        >
+          Verfügbare PPs laden
+        </Button>
+      )}
+      {spots && spots.length === 0 && (
+        <div className="text-slate-600">
+          Keine PPs im Pool für den Buchungszeitraum frei.
+        </div>
+      )}
+      {spots && spots.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {spots.map((s) => (
+            <Button
+              key={s.id}
+              type="button"
+              size="sm"
+              variant="secondary"
+              onClick={() => pick(s.id)}
+              disabled={pending}
+              title={s.warning ?? undefined}
+            >
+              PP {s.number}
+              {s.warning && ' ⚠'}
+            </Button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ParkingToggle({
   pending,
   onAnswer,
