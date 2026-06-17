@@ -1449,6 +1449,115 @@ export type Database = {
           },
         ]
       }
+      parking_assignments: {
+        Row: {
+          booking_id: string | null
+          created_at: string
+          end_date: string
+          external_ref: string | null
+          id: string
+          is_active: boolean
+          kind: Database["public"]["Enums"]["parking_assignment_kind"]
+          monthly_rent: number | null
+          notes: string | null
+          parking_spot_id: string
+          source: Database["public"]["Enums"]["parking_assignment_source"]
+          start_date: string
+          tenant_id: string | null
+          tenant_label: string | null
+          updated_at: string
+        }
+        Insert: {
+          booking_id?: string | null
+          created_at?: string
+          end_date: string
+          external_ref?: string | null
+          id?: string
+          is_active?: boolean
+          kind: Database["public"]["Enums"]["parking_assignment_kind"]
+          monthly_rent?: number | null
+          notes?: string | null
+          parking_spot_id: string
+          source: Database["public"]["Enums"]["parking_assignment_source"]
+          start_date: string
+          tenant_id?: string | null
+          tenant_label?: string | null
+          updated_at?: string
+        }
+        Update: {
+          booking_id?: string | null
+          created_at?: string
+          end_date?: string
+          external_ref?: string | null
+          id?: string
+          is_active?: boolean
+          kind?: Database["public"]["Enums"]["parking_assignment_kind"]
+          monthly_rent?: number | null
+          notes?: string | null
+          parking_spot_id?: string
+          source?: Database["public"]["Enums"]["parking_assignment_source"]
+          start_date?: string
+          tenant_id?: string | null
+          tenant_label?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parking_assignments_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parking_assignments_parking_spot_id_fkey"
+            columns: ["parking_spot_id"]
+            isOneToOne: false
+            referencedRelation: "parking_spots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parking_assignments_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      parking_spots: {
+        Row: {
+          building_label: string | null
+          created_at: string
+          id: string
+          is_active: boolean
+          is_booking_pool: boolean
+          notes_internal: string | null
+          number: number
+          updated_at: string
+        }
+        Insert: {
+          building_label?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_booking_pool?: boolean
+          notes_internal?: string | null
+          number: number
+          updated_at?: string
+        }
+        Update: {
+          building_label?: string | null
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_booking_pool?: boolean
+          notes_internal?: string | null
+          number?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       payments: {
         Row: {
           amount: number
@@ -2310,6 +2419,8 @@ export type Database = {
         | "child"
         | "roommate"
         | "other"
+      parking_assignment_kind: "long_term" | "booking" | "other_block"
+      parking_assignment_source: "w_w" | "tp_command"
       payment_method:
         | "bank_transfer"
         | "manual_slip"
@@ -3057,6 +3168,8 @@ export const Constants = {
         "roommate",
         "other",
       ],
+      parking_assignment_kind: ["long_term", "booking", "other_block"],
+      parking_assignment_source: ["w_w", "tp_command"],
       payment_method: [
         "bank_transfer",
         "manual_slip",

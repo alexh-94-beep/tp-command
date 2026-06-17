@@ -23,6 +23,8 @@ export const AUDIT_ENTITIES = [
   'apartment_damage',
   'pending_reservation',
   'external_owner',
+  'parking_spot',
+  'parking_assignment',
   'user',
 ] as const;
 
