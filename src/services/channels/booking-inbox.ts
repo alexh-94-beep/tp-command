@@ -341,6 +341,11 @@ async function ensurePendingReservation(
         guestName: r.guestName,
         bookingDetailUrl: r.bookingDetailUrl,
         bodyExcerpt: rawBody.slice(0, 1000),
+        // Wenn Bestaetigungs-Mail Datum NICHT mitgesendet hat → Mireme muss
+        // im Booking-Extranet verifizieren bevor die Reservation in eine
+        // Buchung uebernommen werden darf (Phase 22h).
+        dates_verified: Boolean(r.startDate && r.endDate),
+        source: 'new_reservation',
       },
     })
     .select('id')
@@ -797,12 +802,23 @@ async function applyArrivalsSummary(
         (existing.summary == null || !existing.summary.includes(e.guestName));
       if (!dateChanged && !summaryChanged) continue;
 
+      const prevPayload =
+        (existing.raw_payload as Record<string, unknown> | null) ?? {};
+      const newPayload = {
+        ...prevPayload,
+        guestName: e.guestName ?? prevPayload.guestName ?? null,
+        bookingDetailUrl: e.bookingDetailUrl ?? prevPayload.bookingDetailUrl ?? null,
+        // Tagesuebersicht-Daten kommen direkt von Booking.com — gelten
+        // als verifiziert (Phase 22h).
+        dates_verified: true,
+      };
       const { error: updErr } = await supabase
         .from('pending_reservations')
         .update({
           start_date: e.startDate,
           end_date: e.endDate,
           summary: newSummary,
+          raw_payload: newPayload as never,
         })
         .eq('id', existing.id);
       if (updErr) continue;
@@ -849,6 +865,9 @@ async function applyArrivalsSummary(
         source: 'arrivals_summary',
         bookingDetailUrl: e.bookingDetailUrl,
         guestName: e.guestName,
+        // True wenn die Tabellenzeile echte Daten lieferte; sonst Placeholder
+        // → Mireme muss verifizieren bevor Uebernahme.
+        dates_verified: Boolean(e.startDate && e.endDate),
       } as never,
     });
     if (!error) added += 1;

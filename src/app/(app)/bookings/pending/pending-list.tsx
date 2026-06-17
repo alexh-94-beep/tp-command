@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cancelPendingReservation } from '@/server/channels/pending';
@@ -18,6 +19,8 @@ interface Row {
   guest_count: number | null;
   channel_code: string;
   channel_label: string;
+  /** Phase 22h: Auszugsdatum im Booking-Extranet bestaetigt. */
+  dates_verified: boolean;
 }
 
 export default function PendingReservationsList({ rows }: { rows: Row[] }) {
@@ -82,7 +85,19 @@ export default function PendingReservationsList({ rows }: { rows: Row[] }) {
                     </Link>
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">{formatDate(r.start_date)}</td>
-                  <td className="px-4 py-3 whitespace-nowrap">{formatDate(r.end_date)}</td>
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    <span className="inline-flex items-center gap-1">
+                      {formatDate(r.end_date)}
+                      {!r.dates_verified && (
+                        <span
+                          title="Auszugs-Datum nicht im Booking-Extranet bestätigt"
+                          className="text-amber-600"
+                        >
+                          <AlertTriangle className="h-3.5 w-3.5" />
+                        </span>
+                      )}
+                    </span>
+                  </td>
                   <td className="px-4 py-3 text-slate-600">
                     <Link
                       href={`/bookings/pending/${r.id}` as never}
@@ -113,7 +128,16 @@ export default function PendingReservationsList({ rows }: { rows: Row[] }) {
                       >
                         Stornieren
                       </Button>
-                      <Button size="sm" onClick={() => setDialogReservationId(r.id)}>
+                      <Button
+                        size="sm"
+                        onClick={() => setDialogReservationId(r.id)}
+                        disabled={!r.dates_verified}
+                        title={
+                          !r.dates_verified
+                            ? 'Zuerst Auszugs-Datum im Booking-Extranet prüfen (Reservation öffnen).'
+                            : undefined
+                        }
+                      >
                         Wohnung zuweisen
                       </Button>
                     </div>

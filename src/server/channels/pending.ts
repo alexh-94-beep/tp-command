@@ -157,6 +157,26 @@ export async function assignReservation(
     parsed.data;
   const supabase = await createSupabaseServerClient();
 
+  // Phase 22h: Guard — wenn dates_verified im raw_payload nicht true ist,
+  // muss Mireme zuerst im Edit-Form die Daten aus dem Booking-Extranet
+  // verifizieren. Pool-Reservationen aus Bestaetigungs-Mails enthalten
+  // oft nur Placeholder-Daten.
+  const { data: preCheck } = await supabase
+    .from('pending_reservations')
+    .select('raw_payload, status')
+    .eq('id', reservation_id)
+    .maybeSingle();
+  if (preCheck && preCheck.status === 'pending') {
+    const rp = (preCheck.raw_payload as Record<string, unknown> | null) ?? {};
+    if (rp.dates_verified !== true) {
+      return {
+        ok: false,
+        error:
+          'Datum aus Booking-Bestätigung nicht verifiziert. Bitte zuerst im Booking-Extranet prüfen, Check-out-Datum eintragen und in der Bearbeitung als "geprüft" markieren.',
+      };
+    }
+  }
+
   // Step 1: Atomarer Claim. Statusübergang pending → assigned läuft DIREKT
   // hier per conditional update. Wenn 0 Zeilen betroffen sind, hat jemand
   // anderes die Reservation parallel zugewiesen oder storniert.
@@ -342,6 +362,9 @@ const updateSchema = z.object({
   summary: z.string().optional(),
   description: z.string().optional(),
   guest_count: z.coerce.number().int().positive().optional(),
+  // Phase 22h: Mireme bestaetigt explizit, dass Daten im Booking-Extranet
+  // geprueft wurden. Setzt raw_payload.dates_verified = true.
+  dates_verified: z.coerce.boolean().optional(),
 });
 
 export async function updatePendingReservation(
@@ -353,14 +376,14 @@ export async function updatePendingReservation(
   for (const k of Object.keys(raw)) if (raw[k] === '') delete raw[k];
   const parsed = updateSchema.safeParse(raw);
   if (!parsed.success) return { ok: false, error: 'Ungueltige Eingabe' };
-  const { reservation_id, ...patch } = parsed.data;
-  if (Object.keys(patch).length === 0) return { ok: true };
+  const { reservation_id, dates_verified, ...patch } = parsed.data;
+  if (Object.keys(patch).length === 0 && dates_verified == null) return { ok: true };
 
   const supabase = await createSupabaseServerClient();
   // Stornierte/zugewiesene Reservationen nicht mehr aendern
   const { data: current } = await supabase
     .from('pending_reservations')
-    .select('status')
+    .select('status, raw_payload')
     .eq('id', reservation_id)
     .maybeSingle();
   if (!current) return { ok: false, error: 'Reservation nicht gefunden' };
@@ -373,9 +396,15 @@ export async function updatePendingReservation(
     return { ok: false, error: 'Auszug muss nach Einzug liegen.' };
   }
 
+  const updateRow: Record<string, unknown> = { ...patch };
+  if (dates_verified === true) {
+    const prev = (current.raw_payload as Record<string, unknown> | null) ?? {};
+    updateRow.raw_payload = { ...prev, dates_verified: true };
+  }
+
   const { error } = await supabase
     .from('pending_reservations')
-    .update(patch)
+    .update(updateRow as never)
     .eq('id', reservation_id);
   if (error) return { ok: false, error: error.message };
 
@@ -386,7 +415,10 @@ export async function updatePendingReservation(
       entity: 'pending_reservation',
       entityId: reservation_id,
       action: 'updated',
-      diff: patch as Record<string, unknown>,
+      diff: { ...patch, ...(dates_verified ? { dates_verified: true } : {}) } as Record<
+        string,
+        unknown
+      >,
     });
   })();
 

@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
-import { Pencil, X, Ban, UserPlus } from 'lucide-react';
+import { Pencil, X, Ban, UserPlus, AlertTriangle, ExternalLink } from 'lucide-react';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
@@ -23,6 +23,9 @@ interface Props {
     description: string | null;
     guest_count: number | null;
     status: string;
+    /** Phase 22h: Daten im Booking-Extranet verifiziert. False = Bestaetigungs-Mail enthielt keine Daten. */
+    dates_verified: boolean;
+    booking_detail_url: string | null;
   };
 }
 
@@ -32,12 +35,24 @@ export default function PendingDetailActions({ reservation }: Props) {
   const [editing, setEditing] = useState(false);
   const [assignOpen, setAssignOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [verifyChecked, setVerifyChecked] = useState(false);
+  const [endDateInput, setEndDateInput] = useState(reservation.end_date);
 
   const isOpen = reservation.status === 'pending';
+  const needsVerify = !reservation.dates_verified;
+  const endDateChanged = endDateInput !== reservation.end_date;
+  // Save erlaubt, sobald Mireme entweder das Auszugs-Datum geaendert hat
+  // oder die "geprueft"-Checkbox angehakt ist.
+  const canSaveEdit = !needsVerify || verifyChecked || endDateChanged;
 
   function handleEdit(form: FormData) {
     setError(null);
     form.set('reservation_id', reservation.id);
+    // Phase 22h: explizit als verifiziert markieren, sobald Mireme entweder
+    // den Auszug aendert oder die Checkbox haekelt.
+    if (needsVerify && (endDateChanged || verifyChecked)) {
+      form.set('dates_verified', '1');
+    }
     startTransition(async () => {
       const r = await updatePendingReservation(form);
       if (!r.ok) {
@@ -74,9 +89,46 @@ export default function PendingDetailActions({ reservation }: Props) {
           </div>
         )}
 
+        {isOpen && needsVerify && (
+          <div className="rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+              <div className="space-y-1">
+                <div className="font-medium">
+                  Datum aus Booking-Bestätigung nicht enthalten
+                </div>
+                <div className="text-xs">
+                  Bitte im Booking-Extranet das Check-out-Datum prüfen und
+                  hier eintragen, bevor du die Reservation einer Wohnung
+                  zuweist.
+                </div>
+                {reservation.booking_detail_url && (
+                  <a
+                    href={reservation.booking_detail_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-xs font-medium text-amber-900 underline hover:text-amber-700"
+                  >
+                    <ExternalLink className="h-3 w-3" />
+                    Im Booking-Extranet öffnen
+                  </a>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {!editing && isOpen && (
           <div className="flex flex-wrap gap-2">
-            <Button onClick={() => setAssignOpen(true)} disabled={pending}>
+            <Button
+              onClick={() => setAssignOpen(true)}
+              disabled={pending || needsVerify}
+              title={
+                needsVerify
+                  ? 'Zuerst Daten im Booking-Extranet prüfen und Check-out bestätigen.'
+                  : undefined
+              }
+            >
               <UserPlus className="h-4 w-4" />
               Wohnung zuweisen
             </Button>
@@ -134,11 +186,27 @@ export default function PendingDetailActions({ reservation }: Props) {
                 <input
                   type="date"
                   name="end_date"
-                  defaultValue={reservation.end_date}
+                  value={endDateInput}
+                  onChange={(e) => setEndDateInput(e.target.value)}
                   className={inputCls}
                 />
               </div>
             </div>
+
+            {needsVerify && (
+              <label className="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+                <input
+                  type="checkbox"
+                  checked={verifyChecked}
+                  onChange={(e) => setVerifyChecked(e.target.checked)}
+                  className="mt-0.5 h-4 w-4"
+                />
+                <span>
+                  Ich habe das Auszugs-Datum im Booking-Extranet geprüft und
+                  hier korrekt eingetragen.
+                </span>
+              </label>
+            )}
 
             <div>
               <label className="block text-xs text-slate-500">Personen</label>
@@ -177,7 +245,7 @@ export default function PendingDetailActions({ reservation }: Props) {
                 <X className="h-4 w-4" />
                 Abbrechen
               </Button>
-              <Button type="submit" disabled={pending}>
+              <Button type="submit" disabled={pending || !canSaveEdit}>
                 {pending ? 'Speichere…' : 'Änderungen speichern'}
               </Button>
             </div>
