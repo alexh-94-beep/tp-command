@@ -13,6 +13,7 @@ import {
   parseNewReservation,
   parseCancellation,
   parseGuestMessage,
+  parseArrivalsSummary,
 } from './booking-email-parser';
 
 describe('isBookingSender', () => {
@@ -69,13 +70,37 @@ describe('classifyBookingEmail', () => {
       ),
     ).toBe('new');
   });
-  it('"Anfrage wurde bestätigt" → new', () => {
+  it('"Anfrage wurde bestätigt" → booking_modified (NICHT new)', () => {
     expect(
       classifyBookingEmail(
         '"Booking.com Messaging" <noreply@booking.com>',
         'Die Anfrage von Tobias Hein wurde bestätigt',
       ),
-    ).toBe('new');
+    ).toBe('booking_modified');
+  });
+  it('"Eine Buchung wurde geändert" → booking_modified', () => {
+    expect(
+      classifyBookingEmail(
+        'noreply@booking.com',
+        'Booking.com - Eine Buchung wurde geändert! (6831776925, Donnerstag, 20. August 2026)',
+      ),
+    ).toBe('booking_modified');
+  });
+  it('"Datumsänderung" → booking_modified', () => {
+    expect(
+      classifyBookingEmail(
+        'noreply@booking.com',
+        'Datumsänderung der Buchung bestätigt',
+      ),
+    ).toBe('booking_modified');
+  });
+  it('Arrivals-Summary → arrivals_summary', () => {
+    expect(
+      classifyBookingEmail(
+        'noreply-email@booking.com',
+        "Reservations with today's or tomorrow's arrival date for THREE POINT Apartments",
+      ),
+    ).toBe('arrivals_summary');
   });
   it('Nicht-Booking → null', () => {
     expect(
@@ -200,7 +225,21 @@ describe('extractGuestName', () => {
 });
 
 describe('extractBookingDetailUrl', () => {
-  it('admin.booking.com mit res_id', () => {
+  it('strikt: matched nur URL mit res_id=expectedUid', () => {
+    const body = `
+      Login: https://admin.booking.com/login
+      Andere: https://admin.booking.com/reservation?res_id=999
+      Korrekt: https://admin.booking.com/hotel/hoteladmin/extranet_ng/manage/booking.html?res_id=5272583892&hotel_id=10974973&lang=de
+    `;
+    expect(extractBookingDetailUrl(body, '5272583892')).toContain(
+      'res_id=5272583892',
+    );
+  });
+  it('strikt: keine URL mit expectedUid → null (kein Fallback)', () => {
+    const body = 'https://admin.booking.com/login\nhttps://admin.booking.com/?res_id=999';
+    expect(extractBookingDetailUrl(body, '5272583892')).toBeNull();
+  });
+  it('ohne expectedUid: admin.booking.com mit res_id', () => {
     const body =
       'Buchung anzeigen: https://admin.booking.com/hotel/hoteladmin/extranet_ng/manage/reservations.html?res_id=1234567890\n';
     expect(extractBookingDetailUrl(body)).toContain('res_id=1234567890');
@@ -288,6 +327,23 @@ describe('parseGuestMessage', () => {
   });
   it('ohne UID → null', () => {
     expect(parseGuestMessage('a@guest.booking.com', 'foo', 'no number')).toBeNull();
+  });
+});
+
+describe('parseArrivalsSummary', () => {
+  it('extrahiert mehrere Buchungs-Nrn dedupliziert', () => {
+    const body = `
+      <https://admin.booking.com/hotel/hoteladmin/extranet_ng/manage/booking.html?res_id=5113511120&hotel_id=10974973>
+      <https://admin.booking.com/hotel/hoteladmin/extranet_ng/manage/booking.html?res_id=5113511120&lang=en>
+      <https://admin.booking.com/hotel/hoteladmin/extranet_ng/manage/booking.html?res_id=6189411548&hotel_id=10974973>
+    `;
+    const r = parseArrivalsSummary(body);
+    expect(r.length).toBe(2);
+    expect(r.map((e) => e.externalUid).sort()).toEqual(['5113511120', '6189411548']);
+    expect(r[0].bookingDetailUrl).toContain('res_id=5113511120');
+  });
+  it('leerer Body → leere Liste', () => {
+    expect(parseArrivalsSummary('keine URLs hier')).toEqual([]);
   });
 });
 

@@ -67,6 +67,8 @@ export async function runBookingInboxPoll(): Promise<{
   newReservations?: number;
   cancellations?: number;
   guestMessages?: number;
+  modifications?: number;
+  arrivalsSummaries?: number;
   skipped?: number;
   errors?: string[];
 }> {
@@ -90,6 +92,8 @@ export async function runBookingInboxPoll(): Promise<{
     newReservations: r.newReservations,
     cancellations: r.cancellations,
     guestMessages: r.guestMessages,
+    modifications: r.modifications,
+    arrivalsSummaries: r.arrivalsSummaries,
     skipped: r.skipped,
     errors: r.errors,
   };

@@ -15,7 +15,13 @@
 
 // ── Klassifizierung ───────────────────────────────────────────────────
 
-export type BookingEmailKind = 'new' | 'cancelled' | 'guest_message' | null;
+export type BookingEmailKind =
+  | 'new'
+  | 'cancelled'
+  | 'guest_message'
+  | 'booking_modified'
+  | 'arrivals_summary'
+  | null;
 
 /** Erkennbar als Booking.com (vom Absender)? */
 export function isBookingSender(from: string | null | undefined): boolean {
@@ -57,6 +63,31 @@ export function classifyBookingEmail(
     return 'guest_message';
   }
 
+  // Arrivals-Summary: tägliche Übersichts-Mail
+  if (
+    lo.includes("today's or tomorrow's arrival") ||
+    lo.includes('arrival date for') ||
+    lo.includes('anreise von heute oder morgen')
+  ) {
+    return 'arrivals_summary';
+  }
+
+  // Buchungs-Änderung (Datum / Aufenthaltsdauer): "Eine Buchung wurde
+  // geändert" / "Booking modified" — existierende Buchung wird geupdated
+  if (
+    lo.includes('buchung wurde geändert') ||
+    lo.includes('buchung geändert') ||
+    lo.includes('booking modified') ||
+    lo.includes('booking has been modified') ||
+    lo.includes('datumsänderung') ||
+    // Bestätigung einer Gast-Anfrage (Late CO / Early CI / Datumswunsch)
+    // → bestehende Buchung wird modifiziert, KEINE neue Buchung
+    (lo.includes('anfrage von') && lo.includes('bestätigt')) ||
+    (lo.includes('request from') && lo.includes('confirmed'))
+  ) {
+    return 'booking_modified';
+  }
+
   // Storno-Patterns (DE/EN/FR)
   if (
     lo.includes('cancelled') ||
@@ -82,16 +113,48 @@ export function classifyBookingEmail(
     lo.includes('eine neue buchung') ||
     // Last-Minute-Buchungen (kommen kurz vor Anreise)
     lo.includes('last-minute-buchung') ||
-    lo.includes('last minute booking') ||
-    // "Die Anfrage von <Name> wurde bestätigt" — Gast hat eine Anfrage
-    // gestellt, der wurde im Extranet zugestimmt → eine neue Buchung
-    (lo.includes('anfrage von') && lo.includes('bestätigt')) ||
-    (lo.includes('request from') && lo.includes('confirmed'))
+    lo.includes('last minute booking')
   ) {
     return 'new';
   }
 
   return null;
+}
+
+// ── Arrivals-Summary parsen ────────────────────────────────────────────
+
+export interface ArrivalsSummaryEntry {
+  externalUid: string;
+  guestName: string | null;
+  bookingDetailUrl: string | null;
+}
+
+/**
+ * Extrahiert alle Buchungs-Nrn aus einer "Reservations with today's or
+ * tomorrow's arrival date"-Mail. Booking listet sie als Tabelle mit
+ * res_id-Links — wir gehen ueber alle Links durch und deduplizieren
+ * nach externalUid.
+ */
+export function parseArrivalsSummary(body: string): ArrivalsSummaryEntry[] {
+  const seen = new Set<string>();
+  const entries: ArrivalsSummaryEntry[] = [];
+
+  // Alle res_id-URLs sammeln
+  const urlMatches = body.matchAll(
+    /https?:\/\/[^\s<>"']*booking\.com[^\s<>"']*[?&]res_id=(\d{8,12})[^\s<>"']*/gi,
+  );
+  for (const m of urlMatches) {
+    const uid = m[1];
+    if (seen.has(uid)) continue;
+    seen.add(uid);
+    entries.push({
+      externalUid: uid,
+      guestName: null, // Tabellen-Parse ist fragil; Office sieht Name im Extranet
+      bookingDetailUrl: cleanTrailingPunct(m[0]),
+    });
+  }
+
+  return entries;
 }
 
 // ── Field-Extraktion ───────────────────────────────────────────────────
@@ -280,24 +343,41 @@ export function extractGuestCount(text: string): number | null {
 /**
  * Extrahiert den Link zur konkreten Buchung in Booking.com Extranet.
  *
- * Strenger als naiv "erste booking.com-URL": Domain-only URLs wie
- * `https://admin.booking.com.` werden ignoriert — die kommen oft im
- * Body-Tipptext vor ("Stellen Sie sicher, dass Ihre URL X lautet").
+ * Strikte Variante (empfohlen): expectedUid setzen — nur URLs deren
+ *   `res_id=` Parameter exakt der gefragten Buchungs-Nr entspricht
+ *   werden akzeptiert. Damit faengt der Parser nicht aus Versehen
+ *   Login-URLs, Tracking-Pixel oder URLs anderer Buchungen in derselben
+ *   Mail.
  *
- * Bevorzugt URLs mit res_id/reservation_id im Query, sonst die erste
- * URL die einen Pfad (`/etwas`) oder Query (`?etwas`) hat.
+ * Naive Variante (ohne expectedUid): erste URL mit res_id/reservation_id,
+ *   sonst erste mit Pfad/Query. Domain-only-URLs (`https://admin.booking.com.`)
+ *   werden nie genommen.
  */
-export function extractBookingDetailUrl(body: string): string | null {
+export function extractBookingDetailUrl(
+  body: string,
+  expectedUid?: string | null,
+): string | null {
   const urls = body.match(/https?:\/\/[^\s<>"']+booking\.com[^\s<>"']*/gi);
   if (!urls || urls.length === 0) return null;
 
-  // 1. URLs mit konkreter Buchungs-ID im Query → Top-Prio
+  // 1. Strikt: URL muss res_id=EXACT_UID enthalten
+  if (expectedUid) {
+    const exact = urls.find((u) => {
+      const m = u.match(/[?&]res_id=(\d{8,12})/i);
+      return m && m[1] === expectedUid;
+    });
+    if (exact) return cleanTrailingPunct(exact);
+    // Strikter Modus: kein Match → null (KEIN Fallback auf falsche URL)
+    return null;
+  }
+
+  // 2. Ohne expectedUid: URLs mit irgendeiner Buchungs-ID
   const withId = urls.find((u) =>
     /\b(res_id|reservation_id|bn|reservationid|bk|confirmationnumber)=/.test(u),
   );
   if (withId) return cleanTrailingPunct(withId);
 
-  // 2. URLs mit Pfad (mehr als nur Domain) oder Query-String
+  // 3. URLs mit Pfad (mehr als nur Domain) oder Query-String
   const withPath = urls.find((u) => {
     const cleaned = cleanTrailingPunct(u);
     const afterDomain = cleaned.replace(/^https?:\/\/[^\/]+/, '');
@@ -305,7 +385,6 @@ export function extractBookingDetailUrl(body: string): string | null {
   });
   if (withPath) return cleanTrailingPunct(withPath);
 
-  // Sonst: keine brauchbare URL — bewusst null statt Domain-only
   return null;
 }
 
@@ -408,7 +487,7 @@ export function parseNewReservation(
   const { startDate: bodyStart, endDate } = extractDates(body);
   return {
     externalUid,
-    bookingDetailUrl: extractBookingDetailUrl(body),
+    bookingDetailUrl: extractBookingDetailUrl(body, externalUid),
     guestName: extractGuestName(subject),
     startDate: subjectDate ?? bodyStart,
     endDate,

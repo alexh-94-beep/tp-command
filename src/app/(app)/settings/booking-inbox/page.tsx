@@ -21,11 +21,13 @@ export default async function BookingInboxSettingsPage() {
     .order('processed_at', { ascending: false })
     .limit(30);
 
-  const counts = { new: 0, cancelled: 0, guest: 0, skipped: 0 };
+  const counts = { new: 0, cancelled: 0, guest: 0, modified: 0, arrivals: 0, skipped: 0 };
   for (const r of recent ?? []) {
     if (r.action === 'new_reservation') counts.new++;
     else if (r.action === 'cancellation') counts.cancelled++;
     else if (r.action === 'guest_message') counts.guest++;
+    else if (r.action === 'booking_modified') counts.modified++;
+    else if (r.action === 'arrivals_summary') counts.arrivals++;
     else counts.skipped++;
   }
 
@@ -53,8 +55,10 @@ export default async function BookingInboxSettingsPage() {
         <CardBody>
           <div className="mb-3 flex gap-2 text-xs">
             <Badge tone="success">{counts.new} neu</Badge>
+            <Badge tone="warning">{counts.modified} geändert</Badge>
             <Badge tone="danger">{counts.cancelled} storniert</Badge>
             <Badge tone="info">{counts.guest} Gast-Nachricht</Badge>
+            <Badge tone="info">{counts.arrivals} Tagesübersicht</Badge>
             <Badge tone="neutral">{counts.skipped} ignoriert</Badge>
           </div>
           {(recent ?? []).length === 0 ? (
@@ -88,7 +92,11 @@ export default async function BookingInboxSettingsPage() {
                                 ? 'danger'
                                 : r.action === 'guest_message'
                                   ? 'info'
-                                  : 'neutral'
+                                  : r.action === 'booking_modified'
+                                    ? 'warning'
+                                    : r.action === 'arrivals_summary'
+                                      ? 'info'
+                                      : 'neutral'
                           }
                         >
                           {r.action === 'new_reservation'
@@ -97,7 +105,11 @@ export default async function BookingInboxSettingsPage() {
                               ? 'Storno'
                               : r.action === 'guest_message'
                                 ? 'Gast-Nachricht'
-                                : 'Ignoriert'}
+                                : r.action === 'booking_modified'
+                                  ? 'Geändert'
+                                  : r.action === 'arrivals_summary'
+                                    ? 'Tagesübersicht'
+                                    : 'Ignoriert'}
                         </Badge>
                       </td>
                       <td className="px-3 py-2 font-mono text-xs">
