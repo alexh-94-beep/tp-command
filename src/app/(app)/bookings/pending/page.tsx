@@ -17,7 +17,7 @@ export default async function PendingPage() {
   const { data } = await supabase
     .from('pending_reservations')
     .select(
-      'id, external_uid, start_date, end_date, summary, status, guest_count, channel:channels(code, display_name)',
+      'id, external_uid, start_date, end_date, summary, status, guest_count, raw_payload, channel:channels(code, display_name)',
     )
     .eq('status', 'pending')
     .order('start_date');
@@ -46,16 +46,20 @@ export default async function PendingPage() {
       />
 
       <PendingReservationsList
-        rows={(data ?? []).map((r) => ({
-          id: r.id,
-          external_uid: r.external_uid,
-          start_date: r.start_date,
-          end_date: r.end_date,
-          summary: r.summary,
-          guest_count: r.guest_count,
-          channel_code: r.channel?.code ?? '–',
-          channel_label: r.channel?.display_name ?? '–',
-        }))}
+        rows={(data ?? []).map((r) => {
+          const rp = (r.raw_payload as Record<string, unknown> | null) ?? {};
+          return {
+            id: r.id,
+            external_uid: r.external_uid,
+            start_date: r.start_date,
+            end_date: r.end_date,
+            summary: r.summary,
+            guest_count: r.guest_count,
+            channel_code: r.channel?.code ?? '–',
+            channel_label: r.channel?.display_name ?? '–',
+            dates_verified: rp.dates_verified === true,
+          };
+        })}
       />
     </div>
   );

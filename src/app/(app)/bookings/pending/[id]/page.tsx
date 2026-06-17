@@ -37,6 +37,10 @@ export default async function PendingReservationDetailPage({
     typeof rawPayload.bookingDetailUrl === 'string'
       ? rawPayload.bookingDetailUrl
       : null;
+  // Phase 22h: Bestaetigungs-Mails liefern oft keine Daten — Mireme muss
+  // im Booking-Extranet pruefen und Check-out-Datum eintragen bevor die
+  // Reservation in eine Buchung uebernommen werden darf.
+  const datesVerified = rawPayload.dates_verified === true;
 
   const statusTone =
     r.status === 'pending'
@@ -141,6 +145,8 @@ export default async function PendingReservationDetailPage({
           description: r.description,
           guest_count: r.guest_count,
           status: r.status,
+          dates_verified: datesVerified,
+          booking_detail_url: bookingUrl,
         }}
       />
     </div>
