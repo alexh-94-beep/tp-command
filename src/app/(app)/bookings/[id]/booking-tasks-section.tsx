@@ -23,6 +23,7 @@ import {
   setTaskStatus,
   updateTaskNotes,
 } from '@/server/workflow/actions';
+import { setBookingParking } from '@/server/bookings/set-parking';
 
 export interface BookingTaskRow {
   id: string;
@@ -189,7 +190,12 @@ function TaskGroup({
               </div>
               <ul className="mt-1 divide-y divide-slate-100">
                 {list.map((t) => (
-                  <TaskRow key={t.id} task={t} assignees={assignees} />
+                  <TaskRow
+                    key={t.id}
+                    bookingId={bookingId}
+                    task={t}
+                    assignees={assignees}
+                  />
                 ))}
               </ul>
             </div>
@@ -201,9 +207,11 @@ function TaskGroup({
 }
 
 function TaskRow({
+  bookingId,
   task,
   assignees,
 }: {
+  bookingId: string;
   task: BookingTaskRow;
   assignees: AssigneeOption[];
 }) {
@@ -283,6 +291,20 @@ function TaskRow({
           </div>
           {task.description && !isDone && (
             <div className="mt-0.5 text-xs text-slate-500">{task.description}</div>
+          )}
+          {task.code === 'booking_parking_check' && !isDone && (
+            <ParkingToggle
+              bookingId={bookingId}
+              pending={pending}
+              onAnswer={(needed) =>
+                startTransition(async () => {
+                  const fd = new FormData();
+                  fd.set('booking_id', bookingId);
+                  fd.set('needed', needed ? '1' : '0');
+                  await setBookingParking(fd);
+                })
+              }
+            />
           )}
           {(task.notes || showNotes) && (
             <div className="mt-1">
@@ -523,6 +545,44 @@ function RegenerateButton({ bookingId, hasAny }: { bookingId: string; hasAny: bo
       >
         <RefreshCw className="h-3.5 w-3.5" />
         {hasAny ? 'Aktualisieren' : 'Aufgaben erzeugen'}
+      </Button>
+    </div>
+  );
+}
+
+/**
+ * Phase 23a: Inline-Toggle fuer "Frage Parkplatz benoetigt?"-Task.
+ * Beantwortet die Frage direkt + reaktiviert die conditional Tasks
+ * (Parkplatz-Zuweisung, Anleitung senden) via setBookingParking.
+ */
+function ParkingToggle({
+  pending,
+  onAnswer,
+}: {
+  bookingId: string;
+  pending: boolean;
+  onAnswer: (needed: boolean) => void;
+}) {
+  return (
+    <div className="mt-2 flex items-center gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs">
+      <span className="font-medium text-amber-900">Parkplatz benötigt?</span>
+      <Button
+        type="button"
+        size="sm"
+        variant="secondary"
+        onClick={() => onAnswer(true)}
+        disabled={pending}
+      >
+        Ja → Parkplatz zuteilen
+      </Button>
+      <Button
+        type="button"
+        size="sm"
+        variant="secondary"
+        onClick={() => onAnswer(false)}
+        disabled={pending}
+      >
+        Nein
       </Button>
     </div>
   );
