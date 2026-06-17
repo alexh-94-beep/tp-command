@@ -61,6 +61,22 @@ describe('classifyBookingEmail', () => {
       ),
     ).toBe('new');
   });
+  it('Last-Minute-Buchung DE → new', () => {
+    expect(
+      classifyBookingEmail(
+        'noreply@booking.com',
+        'Booking.com - Neue Last-Minute-Buchung (5516246212, Mittwoch, 17. Juni 2026)',
+      ),
+    ).toBe('new');
+  });
+  it('"Anfrage wurde bestätigt" → new', () => {
+    expect(
+      classifyBookingEmail(
+        '"Booking.com Messaging" <noreply@booking.com>',
+        'Die Anfrage von Tobias Hein wurde bestätigt',
+      ),
+    ).toBe('new');
+  });
   it('Nicht-Booking → null', () => {
     expect(
       classifyBookingEmail('mieter@example.com', 'Frage zur Wohnung'),

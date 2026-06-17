@@ -79,7 +79,14 @@ export function classifyBookingEmail(
     lo.includes('reservation:') ||
     lo.includes('buchung:') ||
     // Booking.com-typisches Format: "Booking.com - Eine neue Buchung! (UID, Datum)"
-    lo.includes('eine neue buchung')
+    lo.includes('eine neue buchung') ||
+    // Last-Minute-Buchungen (kommen kurz vor Anreise)
+    lo.includes('last-minute-buchung') ||
+    lo.includes('last minute booking') ||
+    // "Die Anfrage von <Name> wurde bestätigt" — Gast hat eine Anfrage
+    // gestellt, der wurde im Extranet zugestimmt → eine neue Buchung
+    (lo.includes('anfrage von') && lo.includes('bestätigt')) ||
+    (lo.includes('request from') && lo.includes('confirmed'))
   ) {
     return 'new';
   }
