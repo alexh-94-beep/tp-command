@@ -2332,6 +2332,8 @@ export type Database = {
         | "cancellation"
         | "skipped"
         | "guest_message"
+        | "booking_modified"
+        | "arrivals_summary"
       rental_type: "long_term" | "short_term" | "booking"
       residence_permit:
         | "C"
@@ -3079,6 +3081,8 @@ export const Constants = {
         "cancellation",
         "skipped",
         "guest_message",
+        "booking_modified",
+        "arrivals_summary",
       ],
       rental_type: ["long_term", "short_term", "booking"],
       residence_permit: [
