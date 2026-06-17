@@ -20,6 +20,7 @@ import {
   Plus,
   ClipboardList,
   CalendarDays,
+  Inbox,
 } from 'lucide-react';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/shared/page-header';
@@ -43,6 +44,7 @@ export default async function CleaningDashboard({ me }: { me: AppUser }) {
     myWorkflowTasks,
     myStandaloneTasks,
     upcomingMoveIns,
+    poolPendingCount,
   ] = await Promise.all([
     // Offene Reinigungen heute (alle, nicht nur eigene — Mireme plant)
     supabase
@@ -101,6 +103,11 @@ export default async function CleaningDashboard({ me }: { me: AppUser }) {
       .lte('start_date', in3)
       .order('start_date', { ascending: true })
       .limit(30),
+    // Offene Booking-Pool-Reservationen — Mireme verteilt sie
+    supabase
+      .from('pending_reservations')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'pending'),
   ]);
 
   // Zusaetzlich Einzuege Tag 4-7 als Hinweis-Liste (sekundaer)
@@ -137,6 +144,7 @@ export default async function CleaningDashboard({ me }: { me: AppUser }) {
 
   const cleaningsToday = cleanOpenToday.count ?? 0;
   const cleaningsOverdue = cleanOverdueAll.count ?? 0;
+  const poolPending = poolPendingCount.count ?? 0;
   const myTasks = [
     ...(myCleanings.data ?? []).map((c) => ({
       kind: 'cleaning' as const,
@@ -213,6 +221,20 @@ export default async function CleaningDashboard({ me }: { me: AppUser }) {
           </div>
         }
       />
+
+      {poolPending > 0 && (
+        <Link
+          href="/bookings/pending"
+          className="flex items-center justify-between rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 hover:bg-amber-100"
+        >
+          <span className="inline-flex items-center gap-2">
+            <Inbox className="h-4 w-4" />
+            <strong>{poolPending}</strong> offene Pool-Reservation(en) brauchen
+            eine Wohnungs-Zuweisung
+          </span>
+          <span className="text-xs">Jetzt verteilen →</span>
+        </Link>
+      )}
 
       {/* Schnell-Zahlen-Zeile */}
       <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">

@@ -126,7 +126,8 @@ export async function createPendingReservation(
 export async function getSuggestions(
   reservationId: string,
 ): Promise<SuggestionsResult | null> {
-  await requireRole(['admin', 'office']);
+  // Phase 20f: Mireme braucht Wohnungs-Vorschlaege fuer die Pool-Verteilung
+  await requireRole(['admin', 'office', 'cleaning']);
   const supabase = await createSupabaseServerClient();
   return suggestApartmentsForReservation(supabase, reservationId);
 }
@@ -142,7 +143,8 @@ const assignSchema = z.object({
 export async function assignReservation(
   formData: FormData,
 ): Promise<{ ok: boolean; error?: string; warning?: string; bookingId?: string }> {
-  await requireRole(['admin', 'office']);
+  // Phase 20f: Mireme darf Pool-Reservationen einer Wohnung zuweisen
+  await requireRole(['admin', 'office', 'cleaning']);
   const user = await getCurrentUser();
 
   const raw: Record<string, unknown> = Object.fromEntries(formData.entries());
@@ -331,10 +333,73 @@ export async function assignReservation(
   return { ok: true, bookingId: booking.id, warning };
 }
 
+// Phase 20f: Bearbeiten einer pending_reservation —
+// Mireme/Office ergaenzt Gast-Name, korrigiert Datum, etc.
+const updateSchema = z.object({
+  reservation_id: z.string().uuid(),
+  start_date: z.string().min(1).optional(),
+  end_date: z.string().min(1).optional(),
+  summary: z.string().optional(),
+  description: z.string().optional(),
+  guest_count: z.coerce.number().int().positive().optional(),
+});
+
+export async function updatePendingReservation(
+  formData: FormData,
+): Promise<{ ok: boolean; error?: string }> {
+  await requireRole(['admin', 'office', 'cleaning']);
+  const actor = await getCurrentUser();
+  const raw: Record<string, unknown> = Object.fromEntries(formData.entries());
+  for (const k of Object.keys(raw)) if (raw[k] === '') delete raw[k];
+  const parsed = updateSchema.safeParse(raw);
+  if (!parsed.success) return { ok: false, error: 'Ungueltige Eingabe' };
+  const { reservation_id, ...patch } = parsed.data;
+  if (Object.keys(patch).length === 0) return { ok: true };
+
+  const supabase = await createSupabaseServerClient();
+  // Stornierte/zugewiesene Reservationen nicht mehr aendern
+  const { data: current } = await supabase
+    .from('pending_reservations')
+    .select('status')
+    .eq('id', reservation_id)
+    .maybeSingle();
+  if (!current) return { ok: false, error: 'Reservation nicht gefunden' };
+  if (current.status !== 'pending') {
+    return { ok: false, error: 'Nur offene Reservationen koennen bearbeitet werden.' };
+  }
+
+  // Datums-Plausibilitaet wenn beide gesetzt
+  if (patch.start_date && patch.end_date && patch.end_date <= patch.start_date) {
+    return { ok: false, error: 'Auszug muss nach Einzug liegen.' };
+  }
+
+  const { error } = await supabase
+    .from('pending_reservations')
+    .update(patch)
+    .eq('id', reservation_id);
+  if (error) return { ok: false, error: error.message };
+
+  void (async () => {
+    const { logAudit } = await import('@/services/audit/log');
+    await logAudit(supabase, {
+      actorId: actor?.id ?? null,
+      entity: 'pending_reservation',
+      entityId: reservation_id,
+      action: 'updated',
+      diff: patch as Record<string, unknown>,
+    });
+  })();
+
+  revalidatePath('/bookings/pending');
+  revalidatePath(`/bookings/pending/${reservation_id}`);
+  return { ok: true };
+}
+
 export async function cancelPendingReservation(
   reservationId: string,
 ): Promise<{ ok: boolean; error?: string }> {
-  await requireRole(['admin', 'office']);
+  // Phase 20f: Mireme darf Pool-Reservationen stornieren
+  await requireRole(['admin', 'office', 'cleaning']);
   const actor = await getCurrentUser();
   const supabase = await createSupabaseServerClient();
   const { error } = await supabase
