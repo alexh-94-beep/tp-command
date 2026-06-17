@@ -19,7 +19,7 @@
     },
     {
       "path": "/api/cron/booking-inbox-poll",
-      "schedule": "0 * * * *"
+      "schedule": "15 6 * * *"
     }
   ]
 }
