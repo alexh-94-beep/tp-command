@@ -15,7 +15,7 @@
 
 // ── Klassifizierung ───────────────────────────────────────────────────
 
-export type BookingEmailKind = 'new' | 'cancelled' | null;
+export type BookingEmailKind = 'new' | 'cancelled' | 'guest_message' | null;
 
 /** Erkennbar als Booking.com (vom Absender)? */
 export function isBookingSender(from: string | null | undefined): boolean {
@@ -24,8 +24,14 @@ export function isBookingSender(from: string | null | undefined): boolean {
   return (
     lo.includes('@booking.com') ||
     lo.includes('@noreply.booking.com') ||
-    lo.includes('@customer-service.booking.com')
+    lo.includes('@customer-service.booking.com') ||
+    lo.includes('@guest.booking.com')
   );
+}
+
+/** Absender = Gast-Maskierung (z.B. "Esther über Booking.com" <...@guest.booking.com>)? */
+export function isGuestProxyAddress(from: string | null | undefined): boolean {
+  return !!from && from.toLowerCase().includes('@guest.booking.com');
 }
 
 /**
@@ -40,6 +46,16 @@ export function classifyBookingEmail(
   if (!subject) return null;
 
   const lo = subject.toLowerCase();
+
+  // Gast-Nachricht: From ist @guest.booking.com ODER Subject "Nachricht von"
+  if (
+    isGuestProxyAddress(from) ||
+    lo.includes('nachricht von') ||
+    lo.includes('message from') ||
+    lo.includes('message de')
+  ) {
+    return 'guest_message';
+  }
 
   // Storno-Patterns (DE/EN/FR)
   if (
@@ -61,7 +77,9 @@ export function classifyBookingEmail(
     lo.includes('neue reservierung') ||
     lo.includes('nouvelle réservation') ||
     lo.includes('reservation:') ||
-    lo.includes('buchung:')
+    lo.includes('buchung:') ||
+    // Booking.com-typisches Format: "Booking.com - Eine neue Buchung! (UID, Datum)"
+    lo.includes('eine neue buchung')
   ) {
     return 'new';
   }
@@ -187,8 +205,8 @@ export function normalizeDate(raw: string): string | null {
     const [, d, m, y] = slash;
     return iso(y, m, d);
   }
-  // "15 June 2026" / "15 Juni 2026"
-  const monthName = s.match(/^(\d{1,2})\s+(\w+)\s+(\d{4})$/);
+  // "15 June 2026" / "15 Juni 2026" / "15. Juni 2026" (DE mit Punkt)
+  const monthName = s.match(/^(\d{1,2})\.?\s+([\p{L}]+)\.?\s+(\d{4})$/u);
   if (monthName) {
     const [, d, name, y] = monthName;
     const m = monthFromName(name);
@@ -245,20 +263,97 @@ export function extractGuestCount(text: string): number | null {
 
 /**
  * Extrahiert den Link zur konkreten Buchung in Booking.com Extranet.
- * Typische URLs:
- *   - https://admin.booking.com/hotel/hoteladmin/extranet_ng/...?res_id=1234567890
- *   - https://secure.booking.com/...
  *
- * Bevorzugt URLs mit res_id/reservation_id; fallback ist die erste
- * booking.com-URL im Text.
+ * Strenger als naiv "erste booking.com-URL": Domain-only URLs wie
+ * `https://admin.booking.com.` werden ignoriert — die kommen oft im
+ * Body-Tipptext vor ("Stellen Sie sicher, dass Ihre URL X lautet").
+ *
+ * Bevorzugt URLs mit res_id/reservation_id im Query, sonst die erste
+ * URL die einen Pfad (`/etwas`) oder Query (`?etwas`) hat.
  */
 export function extractBookingDetailUrl(body: string): string | null {
   const urls = body.match(/https?:\/\/[^\s<>"']+booking\.com[^\s<>"']*/gi);
   if (!urls || urls.length === 0) return null;
+
+  // 1. URLs mit konkreter Buchungs-ID im Query → Top-Prio
   const withId = urls.find((u) =>
-    /\b(res_id|reservation_id|bn|reservationid|bk)=?/.test(u),
+    /\b(res_id|reservation_id|bn|reservationid|bk|confirmationnumber)=/.test(u),
   );
-  return withId ?? urls[0];
+  if (withId) return cleanTrailingPunct(withId);
+
+  // 2. URLs mit Pfad (mehr als nur Domain) oder Query-String
+  const withPath = urls.find((u) => {
+    const cleaned = cleanTrailingPunct(u);
+    const afterDomain = cleaned.replace(/^https?:\/\/[^\/]+/, '');
+    return afterDomain.length > 0 && afterDomain !== '/';
+  });
+  if (withPath) return cleanTrailingPunct(withPath);
+
+  // Sonst: keine brauchbare URL — bewusst null statt Domain-only
+  return null;
+}
+
+function cleanTrailingPunct(u: string): string {
+  return u.replace(/[.,;:!?)\]]+$/g, '');
+}
+
+// ── Datum aus Subject (Booking-typische Klammern) ──────────────────────
+
+/**
+ * Extrahiert das Anreisedatum aus dem Subject-Pattern von
+ * Booking.com-Bestaetigungen, z.B.:
+ *   "Booking.com - Eine neue Buchung! (5113511120, Mittwoch, 17. Juni 2026)"
+ *   "Booking.com - New reservation! (5113511120, Wednesday, 17 June 2026)"
+ * Liefert ISO YYYY-MM-DD oder null.
+ */
+export function extractDateFromSubject(subject: string | null | undefined): string | null {
+  if (!subject) return null;
+  // Suche Wochentag + Datum nach der Buchungs-Nr in den Klammern
+  const m = subject.match(
+    /\(\s*\d{8,12}\s*,\s*[\p{L}]+\s*,\s*(\d{1,2}\.?\s*[\p{L}]+\.?\s*\d{4})/u,
+  );
+  if (m) return normalizeDate(m[1].replace(/\.\s*/g, '. ').trim());
+  // Fallback: irgendein Datum nach Wochentag
+  const m2 = subject.match(/[\p{L}]+,\s*(\d{1,2}\.?\s*[\p{L}]+\.?\s*\d{4})/u);
+  if (m2) return normalizeDate(m2[1].replace(/\.\s*/g, '. ').trim());
+  return null;
+}
+
+// ── Gast-Nachrichten ───────────────────────────────────────────────────
+
+export interface ParsedGuestMessage {
+  /** Buchungs-Nr aus Body */
+  externalUid: string;
+  /** Gast-Name aus From-Display oder Subject */
+  guestName: string | null;
+}
+
+/**
+ * Parser fuer Gast-Nachricht-Benachrichtigungen.
+ *   From: "Esther Buchmüller über Booking.com" <...@guest.booking.com>
+ *   Subject: "Wir haben diese Nachricht von Esther Buchmüller erhalten"
+ *   Body: "Buchungsnummer: 6238361486"
+ */
+export function parseGuestMessage(
+  from: string | null | undefined,
+  subject: string | null | undefined,
+  body: string,
+): ParsedGuestMessage | null {
+  const externalUid = extractBookingNumber(body);
+  if (!externalUid) return null;
+  // From-Display: "Name über Booking.com" / "Name via Booking.com"
+  let guestName: string | null = null;
+  if (from) {
+    const display = from.match(/^"?([^"<]+?)"?\s*(?:ueber|über|via)\s+Booking/i);
+    if (display) guestName = display[1].trim();
+  }
+  if (!guestName && subject) {
+    const subj = subject.match(
+      /(?:nachricht\s+von|message\s+from|message\s+de)\s+([^\n<,]+?)\s+(?:erhalten|received|reçu)/i,
+    );
+    if (subj) guestName = subj[1].trim();
+  }
+  return { externalUid, guestName };
 }
 
 /** Gast-Name aus typischen Subject-Patterns. */
@@ -292,12 +387,14 @@ export function parseNewReservation(
   const haystack = `${subject}\n${body}`;
   const externalUid = extractBookingNumber(haystack);
   if (!externalUid) return null;
-  const { startDate, endDate } = extractDates(body);
+  // Datum aus Subject (Booking-Standard) bevorzugt — sonst aus Body suchen
+  const subjectDate = extractDateFromSubject(subject);
+  const { startDate: bodyStart, endDate } = extractDates(body);
   return {
     externalUid,
     bookingDetailUrl: extractBookingDetailUrl(body),
     guestName: extractGuestName(subject),
-    startDate,
+    startDate: subjectDate ?? bodyStart,
     endDate,
     guestCount: extractGuestCount(body),
   };

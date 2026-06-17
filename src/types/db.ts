@@ -2327,7 +2327,11 @@ export type Database = {
         | "parking"
         | "other"
       pending_reservation_status: "pending" | "assigned" | "cancelled"
-      processed_email_action: "new_reservation" | "cancellation" | "skipped"
+      processed_email_action:
+        | "new_reservation"
+        | "cancellation"
+        | "skipped"
+        | "guest_message"
       rental_type: "long_term" | "short_term" | "booking"
       residence_permit:
         | "C"
@@ -3070,7 +3074,12 @@ export const Constants = {
         "other",
       ],
       pending_reservation_status: ["pending", "assigned", "cancelled"],
-      processed_email_action: ["new_reservation", "cancellation", "skipped"],
+      processed_email_action: [
+        "new_reservation",
+        "cancellation",
+        "skipped",
+        "guest_message",
+      ],
       rental_type: ["long_term", "short_term", "booking"],
       residence_permit: [
         "C",

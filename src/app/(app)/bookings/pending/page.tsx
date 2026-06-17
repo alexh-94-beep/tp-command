@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import PendingReservationsList from './pending-list';
 
 export const metadata = { title: 'Pool-Reservationen' };
+export const dynamic = 'force-dynamic';
 
 export default async function PendingPage() {
   // Phase 20f: Mireme (cleaning) verteilt die Booking-Pool-Buchungen
