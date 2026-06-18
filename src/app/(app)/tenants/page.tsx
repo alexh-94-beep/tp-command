@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/shared/page-header';
 import { EmptyState } from '@/components/shared/empty-state';
@@ -126,18 +127,31 @@ export default async function TenantsPage({
                 const bookingCount = Array.isArray(t.bookings)
                   ? (t.bookings[0]?.count ?? 0)
                   : 0;
+                const href = `/tenants/${t.id}` as const;
                 return (
-                  <tr key={t.id} className="hover:bg-slate-50">
+                  <tr key={t.id} className="cursor-pointer hover:bg-slate-50">
                     <td className="px-4 py-3 whitespace-nowrap">
-                      <Badge tone={kindTone[t.tenant_kind]}>{kindLabel[t.tenant_kind]}</Badge>
+                      <Link href={href as never} className="block">
+                        <Badge tone={kindTone[t.tenant_kind]}>{kindLabel[t.tenant_kind]}</Badge>
+                      </Link>
                     </td>
-                    <td className="px-4 py-3 font-medium whitespace-nowrap">{displayName}</td>
-                    <td className="px-4 py-3 whitespace-nowrap">{t.email ?? '–'}</td>
-                    <td className="px-4 py-3 whitespace-nowrap">{t.phone ?? '–'}</td>
+                    <td className="px-4 py-3 font-medium whitespace-nowrap">
+                      <Link href={href as never} className="block hover:underline">
+                        {displayName}
+                      </Link>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <Link href={href as never} className="block">{t.email ?? '–'}</Link>
+                    </td>
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <Link href={href as never} className="block">{t.phone ?? '–'}</Link>
+                    </td>
                     <td className="px-4 py-3 whitespace-nowrap text-xs text-slate-500">
-                      {t.source ?? '–'}
+                      <Link href={href as never} className="block">{t.source ?? '–'}</Link>
                     </td>
-                    <td className="px-4 py-3 text-right">{bookingCount}</td>
+                    <td className="px-4 py-3 text-right">
+                      <Link href={href as never} className="block">{bookingCount}</Link>
+                    </td>
                   </tr>
                 );
               })}
