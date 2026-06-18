@@ -37,7 +37,7 @@ export async function importParkingSpiegel(
   }
   const supabase = await createSupabaseServerClient();
   const r = await applyParkingImport(supabase, parsed.rows, parsed.gaps);
-  revalidatePath('/settings/parking');
+  revalidatePath('/parking');
   return {
     ok: true,
     spotsInserted: r.spotsInserted,
@@ -95,8 +95,8 @@ export async function setParkingBookingPool(
     },
     note: `PP ${prev.number} ${parsed.data.is_booking_pool ? 'als Booking-Pool markiert' : 'aus Booking-Pool entfernt'}`,
   });
-  revalidatePath('/settings/parking');
-  revalidatePath(`/settings/parking/${parsed.data.spot_id}`);
+  revalidatePath('/parking');
+  revalidatePath(`/parking/${parsed.data.spot_id}`);
   return { ok: true };
 }
 
@@ -127,7 +127,7 @@ export async function updateParkingSpotNotes(
     action: 'updated',
     note: 'notes_internal geaendert',
   });
-  revalidatePath(`/settings/parking/${parsed.data.spot_id}`);
+  revalidatePath(`/parking/${parsed.data.spot_id}`);
   return { ok: true };
 }
 
@@ -199,8 +199,8 @@ export async function createBookingParkingAssignment(formData: FormData): Promis
       tenant_label: parsed.data.tenant_label,
     },
   });
-  revalidatePath('/settings/parking');
-  revalidatePath(`/settings/parking/${parsed.data.spot_id}`);
+  revalidatePath('/parking');
+  revalidatePath(`/parking/${parsed.data.spot_id}`);
   if (parsed.data.booking_id) {
     revalidatePath(`/bookings/${parsed.data.booking_id}`);
   }
@@ -367,8 +367,8 @@ export async function assignBookingParkingFromTask(formData: FormData): Promise<
   });
 
   revalidatePath(`/bookings/${booking.id}`);
-  revalidatePath(`/settings/parking/${parsed.data.spot_id}`);
-  revalidatePath('/settings/parking');
+  revalidatePath(`/parking/${parsed.data.spot_id}`);
+  revalidatePath('/parking');
   return { ok: true };
 }
 
@@ -402,8 +402,8 @@ export async function deactivateParkingAssignment(
     action: 'cancelled',
     note: 'Booking-PP-Belegung storniert',
   });
-  revalidatePath('/settings/parking');
-  revalidatePath(`/settings/parking/${prev.parking_spot_id}`);
+  revalidatePath('/parking');
+  revalidatePath(`/parking/${prev.parking_spot_id}`);
   if (prev.booking_id) revalidatePath(`/bookings/${prev.booking_id}`);
   return { ok: true };
 }

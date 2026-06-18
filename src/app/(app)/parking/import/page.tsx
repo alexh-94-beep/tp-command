@@ -12,7 +12,7 @@ export default async function ParkingImportPage() {
     <div className="space-y-6">
       <div className="flex items-center gap-2 text-sm">
         <Link
-          href={{ pathname: '/settings/parking' }}
+          href={{ pathname: '/parking' }}
           className="text-slate-500 hover:text-slate-700"
         >
           <span className="inline-flex items-center gap-1">
