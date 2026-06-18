@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardBody, CardHeader, CardTitle } from '@/components/ui/card';
 import { formatMoney } from '@/lib/money';
+import { formatDate, formatEndDate } from '@/lib/dates';
 import {
   apartmentStatusLabel,
   apartmentStatusTone,
@@ -19,6 +20,7 @@ import {
 import ApartmentDamagesSection, {
   type DamageRow,
 } from './damages-section';
+import type { BookingStatus, RentalType } from '@/types/aliases';
 
 export const metadata = { title: 'Wohnung' };
 
@@ -46,6 +48,15 @@ export default async function ApartmentDetailPage({
     .single();
 
   if (!apartment) notFound();
+
+  // Buchungen der Wohnung laden — alle Vertraege, neueste zuerst (Phase 25c)
+  const { data: bookings } = await supabase
+    .from('bookings')
+    .select(
+      'id, rental_type, start_date, end_date, status, rent_amount, tenant:tenants!bookings_tenant_id_fkey(first_name, last_name)',
+    )
+    .eq('apartment_id', id)
+    .order('start_date', { ascending: false });
 
   // Schäden laden (Phase 13.6)
   const { data: rawDamages } = await supabase
@@ -196,7 +207,133 @@ export default async function ApartmentDetailPage({
         )}
       </div>
 
+      <BookingsList bookings={bookings ?? []} />
+
       <ApartmentDamagesSection apartmentId={apartment.id} damages={damages} />
     </div>
+  );
+}
+
+const bookingStatusLabel: Record<BookingStatus, string> = {
+  planned: 'Geplant',
+  active: 'Aktiv',
+  completed: 'Abgeschlossen',
+  cancelled: 'Storniert',
+};
+const bookingStatusTone: Record<
+  BookingStatus,
+  'neutral' | 'success' | 'warning' | 'danger'
+> = {
+  planned: 'warning',
+  active: 'success',
+  completed: 'neutral',
+  cancelled: 'danger',
+};
+
+interface BookingListItem {
+  id: string;
+  rental_type: RentalType;
+  start_date: string;
+  end_date: string;
+  status: BookingStatus;
+  rent_amount: number | string;
+  tenant: { first_name: string | null; last_name: string | null } | null;
+}
+
+function BookingsList({ bookings }: { bookings: BookingListItem[] }) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Buchungen ({bookings.length})</CardTitle>
+      </CardHeader>
+      <CardBody className="p-0">
+        {bookings.length === 0 ? (
+          <div className="px-6 py-8 text-center text-sm text-slate-500">
+            Noch keine Buchungen erfasst.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-slate-100 text-sm">
+              <thead className="bg-slate-50 text-left text-xs tracking-wide text-slate-500 uppercase">
+                <tr>
+                  <th className="px-3 py-2">Typ</th>
+                  <th className="px-3 py-2">Mieter / Gast</th>
+                  <th className="px-3 py-2">Einzug</th>
+                  <th className="px-3 py-2">Auszug</th>
+                  <th className="px-3 py-2">Mietzins</th>
+                  <th className="px-3 py-2">Status</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {bookings.map((b) => {
+                  const guest = b.tenant
+                    ? `${b.tenant.first_name ?? ''} ${b.tenant.last_name ?? ''}`.trim() || '–'
+                    : '–';
+                  return (
+                    <tr
+                      key={b.id}
+                      className="cursor-pointer hover:bg-slate-50"
+                    >
+                      <td className="px-3 py-2 whitespace-nowrap">
+                        <Link
+                          href={`/bookings/${b.id}` as never}
+                          className="block"
+                        >
+                          <Badge tone="info">{rentalTypeLabel[b.rental_type]}</Badge>
+                        </Link>
+                      </td>
+                      <td className="px-3 py-2 text-slate-700">
+                        <Link
+                          href={`/bookings/${b.id}` as never}
+                          className="block hover:underline"
+                        >
+                          {guest}
+                        </Link>
+                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap text-slate-700">
+                        <Link
+                          href={`/bookings/${b.id}` as never}
+                          className="block"
+                        >
+                          {formatDate(b.start_date)}
+                        </Link>
+                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap text-slate-700">
+                        <Link
+                          href={`/bookings/${b.id}` as never}
+                          className="block"
+                        >
+                          {formatEndDate(b.end_date)}
+                        </Link>
+                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap text-slate-700">
+                        <Link
+                          href={`/bookings/${b.id}` as never}
+                          className="block"
+                        >
+                          {b.rental_type === 'booking'
+                            ? '—'
+                            : formatMoney(b.rent_amount)}
+                        </Link>
+                      </td>
+                      <td className="px-3 py-2 whitespace-nowrap">
+                        <Link
+                          href={`/bookings/${b.id}` as never}
+                          className="block"
+                        >
+                          <Badge tone={bookingStatusTone[b.status]}>
+                            {bookingStatusLabel[b.status]}
+                          </Badge>
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </CardBody>
+    </Card>
   );
 }
