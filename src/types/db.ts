@@ -547,6 +547,7 @@ export type Database = {
           handover_completed_at: string | null
           handover_planned_at: string | null
           id: string
+          invoiced_via: Database["public"]["Enums"]["invoiced_via"]
           move_in_by: string | null
           move_in_completed_at: string | null
           move_in_planned_at: string | null
@@ -578,6 +579,7 @@ export type Database = {
           handover_completed_at?: string | null
           handover_planned_at?: string | null
           id?: string
+          invoiced_via?: Database["public"]["Enums"]["invoiced_via"]
           move_in_by?: string | null
           move_in_completed_at?: string | null
           move_in_planned_at?: string | null
@@ -609,6 +611,7 @@ export type Database = {
           handover_completed_at?: string | null
           handover_planned_at?: string | null
           id?: string
+          invoiced_via?: Database["public"]["Enums"]["invoiced_via"]
           move_in_by?: string | null
           move_in_completed_at?: string | null
           move_in_planned_at?: string | null
@@ -2409,6 +2412,7 @@ export type Database = {
         | "unknown"
       gender: "male" | "female" | "other" | "unknown"
       id_doc_type: "passport" | "id_card" | "driver_license"
+      invoiced_via: "w_w" | "direct"
       maintenance_contact_method: "email" | "whatsapp" | "phone" | "none"
       maintenance_visit_status: "planned" | "confirmed" | "done" | "cancelled"
       name_tag_status: "pending" | "ordered" | "installed"
@@ -3157,6 +3161,7 @@ export const Constants = {
       ],
       gender: ["male", "female", "other", "unknown"],
       id_doc_type: ["passport", "id_card", "driver_license"],
+      invoiced_via: ["w_w", "direct"],
       maintenance_contact_method: ["email", "whatsapp", "phone", "none"],
       maintenance_visit_status: ["planned", "confirmed", "done", "cancelled"],
       name_tag_status: ["pending", "ordered", "installed"],
