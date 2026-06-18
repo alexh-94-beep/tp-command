@@ -48,6 +48,7 @@ export interface StandaloneRow {
 export interface UserOption {
   id: string;
   full_name: string;
+  role?: string;
 }
 
 export interface ApartmentOption {
@@ -378,10 +379,11 @@ function AddTaskForm({
           ))}
         </select>
         <select name="assignee_id" className={inputCls} defaultValue="">
-          <option value="">— niemand zugewiesen —</option>
+          <option value="">— offen / für alle —</option>
           {users.map((u) => (
             <option key={u.id} value={u.id}>
               {u.full_name}
+              {u.role ? ` (${u.role})` : ''}
             </option>
           ))}
         </select>

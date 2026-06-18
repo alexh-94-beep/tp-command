@@ -64,7 +64,7 @@ export default async function TasksPage({
       .limit(200),
     supabase
       .from('users')
-      .select('id, full_name')
+      .select('id, full_name, role')
       .eq('is_active', true)
       .order('full_name'),
     supabase
@@ -86,7 +86,11 @@ export default async function TasksPage({
     due_date: r.due_date,
     created_at: r.created_at,
   }));
-  const users = (usersRaw ?? []).map((u) => ({ id: u.id, full_name: u.full_name }));
+  const users = (usersRaw ?? []).map((u) => ({
+    id: u.id,
+    full_name: u.full_name,
+    role: u.role,
+  }));
   const apartments = (apartmentsRaw ?? []).map((a) => ({ id: a.id, number: a.number }));
 
   const today = todayIso();
