@@ -38,6 +38,12 @@ export interface NavItem {
 export const NAV_ITEMS: NavItem[] = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { label: 'Wohnungen', href: '/apartments', icon: Home },
+  {
+    label: 'Parkplätze',
+    href: '/parking',
+    icon: ParkingSquare,
+    roles: ['admin', 'office', 'management', 'cleaning'],
+  },
   { label: 'Belegung', href: '/calendar', icon: Calendar },
   { label: 'Buchungen', href: '/bookings', icon: BookOpen },
   { label: 'Aufgaben', href: '/tasks', icon: ListChecks, roles: ['admin', 'office'] },
@@ -55,12 +61,6 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ['admin', 'office', 'management'],
   },
   { label: 'Mieter & Gäste', href: '/tenants', icon: Users },
-  {
-    label: 'Parkplätze',
-    href: '/parking',
-    icon: ParkingSquare,
-    roles: ['admin', 'office', 'management', 'cleaning'],
-  },
   { label: 'Einstellungen', href: '/settings', icon: Settings, roles: ['admin'] },
 ];
 
