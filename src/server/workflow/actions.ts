@@ -100,14 +100,14 @@ export async function setTaskStatus(
   taskId: string,
   status: BookingTaskStatus,
 ): Promise<Result> {
-  await requireRole(['admin', 'office']);
+  await requireRole(['admin', 'office', 'cleaning']);
   const me = await getCurrentUser();
   const parsed = setStatusSchema.safeParse({ status });
   if (!parsed.success) return { ok: false, error: 'Ungültiger Status' };
   const supabase = await createSupabaseServerClient();
   const { data: t } = await supabase
     .from('booking_tasks')
-    .select('id, booking_id')
+    .select('id, code, booking_id, status')
     .eq('id', taskId)
     .single();
   if (!t) return { ok: false, error: 'Aufgabe nicht gefunden' };
@@ -119,6 +119,28 @@ export async function setTaskStatus(
   };
   const { error } = await supabase.from('booking_tasks').update(update).eq('id', taskId);
   if (error) return { ok: false, error: error.message };
+
+  // Phase 25b: Wenn die Langzeit-Auszug-Abnahmereinigung abgehakt wird,
+  // legen wir automatisch einen cleaning_task vom Typ 'deep_clean' fuer
+  // den Tag nach dem Auszug an — sichtbar in Miremes Tagesplan als
+  // "Wohnungsabnahmereinigung".
+  if (
+    parsed.data.status === 'done' &&
+    t.status !== 'done' &&
+    t.code === 'schedule_handover_deep_cleaning'
+  ) {
+    void (async () => {
+      try {
+        const { autoCreateHandoverDeepClean } = await import(
+          '@/services/cleaning/auto-handover'
+        );
+        await autoCreateHandoverDeepClean(supabase, t.booking_id, me?.id ?? null);
+      } catch (e) {
+        console.error('[autoCreateHandoverDeepClean] failed:', e);
+      }
+    })();
+  }
+
   await revalidateForTask(t.booking_id);
   return { ok: true };
 }
