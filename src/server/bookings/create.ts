@@ -35,6 +35,8 @@ const schema = z.object({
   parking_fee: z.coerce.number().nonnegative().optional(),
   contract_status: z.enum(['draft', 'sent', 'signed', 'cancelled']).default('draft'),
   status: z.enum(['planned', 'active', 'completed', 'cancelled']).default('planned'),
+  // Phase 25a: Abrechnungsweg, relevant nur fuer short_term. Default w_w.
+  invoiced_via: z.enum(['w_w', 'direct']).default('w_w'),
   notes: z.string().optional(),
   // Mieter / Gast (inline)
   tenant_kind: z.enum(['tenant', 'guest']).default('tenant'),
@@ -151,13 +153,15 @@ export async function createBooking(formData: FormData): Promise<CreateBookingRe
       external_reference: v.external_reference ?? null,
       start_date: v.start_date,
       end_date: v.end_date,
-      rent_amount: v.rent_amount,
-      deposit_amount: v.deposit_amount,
-      short_term_flat_rate: v.short_term_flat_rate ?? null,
+      rent_amount: v.rental_type === 'booking' ? 0 : v.rent_amount,
+      deposit_amount: v.rental_type === 'booking' ? 0 : v.deposit_amount,
+      short_term_flat_rate:
+        v.rental_type === 'short_term' ? (v.short_term_flat_rate ?? null) : null,
       parking_included: v.parking_included,
       parking_fee: v.parking_fee ?? null,
-      contract_status: v.contract_status,
+      contract_status: v.rental_type === 'booking' ? 'signed' : v.contract_status,
       status: v.status,
+      invoiced_via: v.rental_type === 'short_term' ? v.invoiced_via : 'w_w',
       notes: v.notes ?? null,
     })
     .select('id')

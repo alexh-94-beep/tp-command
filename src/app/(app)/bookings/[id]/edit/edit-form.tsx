@@ -34,6 +34,7 @@ interface BookingFormState {
   check_in_status: CheckInOutStatus;
   check_out_status: CheckInOutStatus;
   external_reference: string | null;
+  invoiced_via: 'w_w' | 'direct';
   notes: string | null;
 }
 
@@ -45,6 +46,10 @@ export default function EditBookingForm({ booking }: { booking: BookingFormState
   const [endDate, setEndDate] = useState(
     booking.end_date === OPEN_END_DATE ? '' : booking.end_date,
   );
+  const [invoicedVia, setInvoicedVia] = useState<'w_w' | 'direct'>(booking.invoiced_via);
+  const isBooking = booking.rental_type === 'booking';
+  const isShort = booking.rental_type === 'short_term';
+  const isLong = booking.rental_type === 'long_term';
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -128,19 +133,24 @@ export default function EditBookingForm({ booking }: { booking: BookingFormState
                   <option value="cancelled">Storniert</option>
                 </select>
               </div>
-              <div>
-                <label className={labelCls}>Vertragsstatus</label>
-                <select
-                  className={inputCls}
-                  name="contract_status"
-                  defaultValue={booking.contract_status}
-                >
-                  <option value="draft">Entwurf</option>
-                  <option value="sent">Versendet</option>
-                  <option value="signed">Unterschrieben</option>
-                  <option value="cancelled">Abgesagt</option>
-                </select>
-              </div>
+              {!isBooking && (
+                <div>
+                  <label className={labelCls}>Vertragsstatus</label>
+                  <select
+                    className={inputCls}
+                    name="contract_status"
+                    defaultValue={booking.contract_status}
+                  >
+                    <option value="draft">Entwurf</option>
+                    <option value="sent">Versendet</option>
+                    <option value="signed">Unterschrieben</option>
+                    <option value="cancelled">Abgesagt</option>
+                  </select>
+                </div>
+              )}
+              {isBooking && (
+                <input type="hidden" name="contract_status" value="signed" />
+              )}
               <div>
                 <label className={labelCls}>Check-in</label>
                 <select
@@ -169,56 +179,92 @@ export default function EditBookingForm({ booking }: { booking: BookingFormState
 
         <Card className="lg:col-span-2">
           <CardHeader>
-            <CardTitle>Konditionen</CardTitle>
+            <CardTitle>
+              {isBooking ? 'Booking.com — Daten' : 'Konditionen'} · {rentalTypeLabel[booking.rental_type]}
+            </CardTitle>
           </CardHeader>
           <CardBody className="space-y-4">
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-              <div>
-                <label className={labelCls}>Mietart</label>
-                <select
-                  className={inputCls}
-                  name="rental_type"
-                  defaultValue={booking.rental_type}
-                >
-                  <option value="long_term">{rentalTypeLabel.long_term}</option>
-                  <option value="short_term">{rentalTypeLabel.short_term}</option>
-                  <option value="booking">{rentalTypeLabel.booking}</option>
-                </select>
+            <input type="hidden" name="rental_type" value={booking.rental_type} />
+
+            {isShort && (
+              <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
+                <div className={labelCls}>Abrechnung</div>
+                <div className="mt-2 flex gap-4 text-sm">
+                  <label className="inline-flex items-center gap-2">
+                    <input
+                      type="radio"
+                      name="invoiced_via"
+                      value="w_w"
+                      checked={invoicedVia === 'w_w'}
+                      onChange={() => setInvoicedVia('w_w')}
+                    />
+                    Via W&amp;W
+                  </label>
+                  <label className="inline-flex items-center gap-2">
+                    <input
+                      type="radio"
+                      name="invoiced_via"
+                      value="direct"
+                      checked={invoicedVia === 'direct'}
+                      onChange={() => setInvoicedVia('direct')}
+                    />
+                    Direkt mit Offerte (ohne Vertrag)
+                  </label>
+                </div>
               </div>
-              <div>
-                <label className={labelCls}>Mietzins (CHF)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  className={inputCls}
-                  name="rent_amount"
-                  defaultValue={booking.rent_amount}
-                  required
-                />
-                {fe.rent_amount && (
-                  <p className="mt-1 text-xs text-red-600">{fe.rent_amount[0]}</p>
+            )}
+            {!isShort && (
+              <input type="hidden" name="invoiced_via" value={booking.invoiced_via} />
+            )}
+
+            {!isBooking && (
+              <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+                <div>
+                  <label className={labelCls}>Mietzins (CHF)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    className={inputCls}
+                    name="rent_amount"
+                    defaultValue={booking.rent_amount}
+                    required={isLong || (isShort && invoicedVia === 'direct')}
+                  />
+                  {fe.rent_amount && (
+                    <p className="mt-1 text-xs text-red-600">{fe.rent_amount[0]}</p>
+                  )}
+                </div>
+                <div>
+                  <label className={labelCls}>Depot (CHF)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    className={inputCls}
+                    name="deposit_amount"
+                    defaultValue={booking.deposit_amount}
+                  />
+                </div>
+                {isShort && (
+                  <div>
+                    <label className={labelCls}>Kurzzeitpauschale</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      className={inputCls}
+                      name="short_term_flat_rate"
+                      defaultValue={booking.short_term_flat_rate ?? ''}
+                    />
+                  </div>
                 )}
               </div>
-              <div>
-                <label className={labelCls}>Depot (CHF)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  className={inputCls}
-                  name="deposit_amount"
-                  defaultValue={booking.deposit_amount}
-                />
-              </div>
-              <div>
-                <label className={labelCls}>Kurzzeitpauschale</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  className={inputCls}
-                  name="short_term_flat_rate"
-                  defaultValue={booking.short_term_flat_rate ?? ''}
-                />
-              </div>
+            )}
+            {isBooking && (
+              <>
+                <input type="hidden" name="rent_amount" value="0" />
+                <input type="hidden" name="deposit_amount" value="0" />
+              </>
+            )}
+
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
               <div className="flex items-end gap-2">
                 <label className="inline-flex items-center gap-2 text-sm">
                   <input
@@ -229,22 +275,27 @@ export default function EditBookingForm({ booking }: { booking: BookingFormState
                   Parkplatz inkl.
                 </label>
               </div>
+              {!isBooking && (
+                <div>
+                  <label className={labelCls}>Parking-Gebühr (CHF/Mt)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    className={inputCls}
+                    name="parking_fee"
+                    defaultValue={booking.parking_fee ?? ''}
+                  />
+                </div>
+              )}
               <div>
-                <label className={labelCls}>Parking-Gebühr (CHF/Mt)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  className={inputCls}
-                  name="parking_fee"
-                  defaultValue={booking.parking_fee ?? ''}
-                />
-              </div>
-              <div>
-                <label className={labelCls}>Externe Referenz</label>
+                <label className={labelCls}>
+                  {isBooking ? 'Booking-Nr' : 'Externe Referenz'}
+                </label>
                 <input
                   className={inputCls}
                   name="external_reference"
                   defaultValue={booking.external_reference ?? ''}
+                  readOnly={isBooking}
                 />
               </div>
             </div>

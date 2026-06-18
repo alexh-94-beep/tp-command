@@ -26,12 +26,16 @@ const inputCls =
 export default function NewBookingForm({
   channels,
   defaultApartmentId,
+  rentalType: initialRentalType,
 }: {
   channels: ChannelOpt[];
   defaultApartmentId?: string;
+  /** Phase 25a: vom Typ-Wahl-Schritt vorgegeben, im Formular nur als read-only Anzeige */
+  rentalType: RentalType;
 }) {
   const [apartmentId, setApartmentId] = useState(defaultApartmentId ?? '');
-  const [rentalType, setRentalType] = useState<RentalType>('long_term');
+  const rentalType = initialRentalType;
+  const [invoicedVia, setInvoicedVia] = useState<'w_w' | 'direct'>('w_w');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
@@ -240,36 +244,53 @@ export default function NewBookingForm({
             <CardTitle>Konditionen</CardTitle>
           </CardHeader>
           <CardBody className="space-y-4">
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-              <div>
-                <label className={labelCls}>Mietart</label>
-                <select
-                  className={inputCls}
-                  name="rental_type"
-                  value={rentalType}
-                  onChange={(e) => setRentalType(e.target.value as RentalType)}
-                >
-                  {RENTAL_TYPES.map((t) => (
-                    <option key={t} value={t}>
-                      {rentalTypeLabel[t]}
-                      {!allowedTypes.includes(t) ? ' (nicht voreingestellt)' : ''}
-                    </option>
-                  ))}
-                </select>
-                {selectedApartment && !allowedTypes.includes(rentalType) && (
-                  <p className="mt-1 text-xs text-amber-700">
-                    Diese Wohnung ist für &bdquo;{rentalTypeLabel[rentalType]}&ldquo;
-                    nicht voreingestellt. Buchung trotzdem möglich.
-                  </p>
-                )}
+            <input type="hidden" name="rental_type" value={rentalType} />
+            {selectedApartment && !allowedTypes.includes(rentalType) && (
+              <p className="text-xs text-amber-700">
+                Diese Wohnung ist für &bdquo;{rentalTypeLabel[rentalType]}&ldquo;
+                nicht voreingestellt. Buchung trotzdem möglich.
+              </p>
+            )}
+
+            {rentalType === 'short_term' && (
+              <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
+                <div className={labelCls}>Abrechnung</div>
+                <div className="mt-2 flex gap-4 text-sm">
+                  <label className="inline-flex items-center gap-2">
+                    <input
+                      type="radio"
+                      name="invoiced_via"
+                      value="w_w"
+                      checked={invoicedVia === 'w_w'}
+                      onChange={() => setInvoicedVia('w_w')}
+                    />
+                    Via W&amp;W
+                  </label>
+                  <label className="inline-flex items-center gap-2">
+                    <input
+                      type="radio"
+                      name="invoiced_via"
+                      value="direct"
+                      checked={invoicedVia === 'direct'}
+                      onChange={() => setInvoicedVia('direct')}
+                    />
+                    Direkt mit Offerte (ohne Vertrag)
+                  </label>
+                </div>
+                <p className="mt-1 text-xs text-slate-500">
+                  Bei &bdquo;Direkt&ldquo; werden Mietzins und Depot Pflichtfelder.
+                </p>
               </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
               <div>
                 <label className={labelCls}>
-                  Mietzins (CHF)
+                  Mietzins (CHF){' '}
                   {selectedApartment && (
-                    <span className="ml-2 text-xs font-normal text-slate-500">
+                    <span className="text-xs font-normal text-slate-500">
                       Standard:{' '}
-                      {rentalType === 'short_term' || rentalType === 'booking'
+                      {rentalType === 'short_term'
                         ? (selectedApartment.short_term_flat_rate ?? '–')
                         : selectedApartment.standard_rent}
                     </span>
@@ -280,12 +301,24 @@ export default function NewBookingForm({
                   step="0.01"
                   className={inputCls}
                   name="rent_amount"
-                  required
+                  required={
+                    rentalType === 'long_term' ||
+                    (rentalType === 'short_term' && invoicedVia === 'direct')
+                  }
                 />
               </div>
               <div>
                 <label className={labelCls}>Depot (CHF)</label>
-                <input type="number" step="0.01" className={inputCls} name="deposit_amount" />
+                <input
+                  type="number"
+                  step="0.01"
+                  className={inputCls}
+                  name="deposit_amount"
+                  required={
+                    rentalType === 'long_term' ||
+                    (rentalType === 'short_term' && invoicedVia === 'direct')
+                  }
+                />
               </div>
               <div>
                 <label className={labelCls}>Channel</label>
@@ -319,17 +352,19 @@ export default function NewBookingForm({
                 <label className={labelCls}>Parking-Gebühr (CHF/Mt)</label>
                 <input type="number" step="0.01" className={inputCls} name="parking_fee" />
               </div>
-              <div>
-                <label className={labelCls}>Externe Referenz</label>
-                <input
-                  className={inputCls}
-                  name="external_reference"
-                  placeholder="z. B. Booking-Nr."
-                />
-              </div>
+              {rentalType !== 'long_term' && (
+                <div>
+                  <label className={labelCls}>Externe Referenz</label>
+                  <input
+                    className={inputCls}
+                    name="external_reference"
+                    placeholder="z. B. Booking-Nr."
+                  />
+                </div>
+              )}
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            {rentalType === 'long_term' && (
               <div>
                 <label className={labelCls}>Vertragsstatus</label>
                 <select className={inputCls} name="contract_status" defaultValue="draft">
@@ -339,14 +374,11 @@ export default function NewBookingForm({
                   <option value="cancelled">Abgesagt</option>
                 </select>
               </div>
-              <div>
-                <label className={labelCls}>Buchungsstatus</label>
-                <select className={inputCls} name="status" defaultValue="planned">
-                  <option value="planned">Geplant</option>
-                  <option value="active">Aktiv</option>
-                </select>
-              </div>
-            </div>
+            )}
+            {rentalType !== 'long_term' && (
+              <input type="hidden" name="contract_status" value="signed" />
+            )}
+            <input type="hidden" name="status" value="planned" />
 
             <div>
               <label className={labelCls}>Notizen</label>

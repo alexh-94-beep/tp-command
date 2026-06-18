@@ -86,7 +86,7 @@ export default async function BookingDetailPage({
     .from('bookings')
     .select(
       `
-      id, apartment_id, rental_type, external_reference,
+      id, apartment_id, rental_type, external_reference, invoiced_via,
       start_date, end_date, rent_amount, deposit_amount,
       short_term_flat_rate, parking_included, parking_fee,
       contract_status, payment_status, check_in_status, check_out_status,
@@ -203,10 +203,24 @@ export default async function BookingDetailPage({
 
       <div className="flex flex-wrap gap-2">
         <Badge tone={bookingStatusTone[b.status]}>{bookingStatusLabel[b.status]}</Badge>
-        <Badge tone="info">Vertrag: {contractStatusLabel[b.contract_status]}</Badge>
-        <Badge tone={paymentTone[b.payment_status]}>Zahlung: {paymentLabel[b.payment_status]}</Badge>
+        {b.rental_type !== 'booking' && (
+          <>
+            <Badge tone="info">Vertrag: {contractStatusLabel[b.contract_status]}</Badge>
+            <Badge tone={paymentTone[b.payment_status]}>
+              Zahlung: {paymentLabel[b.payment_status]}
+            </Badge>
+          </>
+        )}
         <Badge tone="neutral">Check-in: {checkLabel[b.check_in_status]}</Badge>
         <Badge tone="neutral">Check-out: {checkLabel[b.check_out_status]}</Badge>
+        {b.rental_type === 'short_term' && (
+          <Badge tone={b.invoiced_via === 'direct' ? 'warning' : 'neutral'}>
+            Abrechnung: {b.invoiced_via === 'direct' ? 'Direkt (Offerte)' : 'W&W'}
+          </Badge>
+        )}
+        {b.rental_type === 'booking' && (
+          <Badge tone="info">Abrechnung via Booking.com</Badge>
+        )}
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
@@ -245,23 +259,51 @@ export default async function BookingDetailPage({
           </CardBody>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Konditionen</CardTitle>
-          </CardHeader>
-          <CardBody>
-            <dl className="grid grid-cols-2 gap-x-4 gap-y-4">
-              <Field label="Mietart" value={rentalTypeLabel[b.rental_type]} />
-              <Field label="Mietzins" value={formatMoney(b.rent_amount)} />
-              <Field label="Depot" value={formatMoney(b.deposit_amount)} />
-              <Field label="Kurzzeitpauschale" value={formatMoney(b.short_term_flat_rate)} />
-              <Field
-                label="Parking"
-                value={b.parking_included ? `Inkl. (${formatMoney(b.parking_fee)})` : 'Nein'}
-              />
-            </dl>
-          </CardBody>
-        </Card>
+        {b.rental_type === 'booking' ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>Booking.com</CardTitle>
+            </CardHeader>
+            <CardBody>
+              <dl className="grid grid-cols-2 gap-x-4 gap-y-4">
+                <Field label="Mietart" value={rentalTypeLabel[b.rental_type]} />
+                <Field
+                  label="Parkplatz"
+                  value={
+                    b.parking_included ? 'Ja (siehe Workflow-Task)' : 'Nicht angefragt'
+                  }
+                />
+              </dl>
+              <p className="mt-3 text-xs text-slate-500">
+                Mietzins/Depot werden bei Booking-Buchungen direkt von Booking.com
+                abgerechnet — hier nicht erfasst.
+              </p>
+            </CardBody>
+          </Card>
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle>Konditionen</CardTitle>
+            </CardHeader>
+            <CardBody>
+              <dl className="grid grid-cols-2 gap-x-4 gap-y-4">
+                <Field label="Mietart" value={rentalTypeLabel[b.rental_type]} />
+                <Field label="Mietzins" value={formatMoney(b.rent_amount)} />
+                <Field label="Depot" value={formatMoney(b.deposit_amount)} />
+                {b.rental_type === 'short_term' && (
+                  <Field
+                    label="Kurzzeitpauschale"
+                    value={formatMoney(b.short_term_flat_rate)}
+                  />
+                )}
+                <Field
+                  label="Parking"
+                  value={b.parking_included ? `Inkl. (${formatMoney(b.parking_fee)})` : 'Nein'}
+                />
+              </dl>
+            </CardBody>
+          </Card>
+        )}
 
         {b.notes && (
           <Card className="lg:col-span-2">
@@ -275,12 +317,16 @@ export default async function BookingDetailPage({
         )}
       </div>
 
-      <BookingPaymentsSection bookingId={b.id} payments={payments} />
+      {b.rental_type !== 'booking' && (
+        <BookingPaymentsSection bookingId={b.id} payments={payments} />
+      )}
 
-      <BookingCommunicationsSection
-        bookingId={b.id}
-        communications={communications}
-      />
+      {b.rental_type !== 'booking' && (
+        <BookingCommunicationsSection
+          bookingId={b.id}
+          communications={communications}
+        />
+      )}
 
       <BookingTasksSection bookingId={b.id} tasks={tasks} assignees={assignees} />
 
