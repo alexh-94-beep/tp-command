@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowLeft, Upload } from 'lucide-react';
+import { Upload } from 'lucide-react';
 import { requireRole } from '@/lib/auth/session';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/shared/page-header';
@@ -79,19 +79,11 @@ export default async function ParkingPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-2 text-sm">
-        <Link href={{ pathname: '/settings' }} className="text-slate-500 hover:text-slate-700">
-          <span className="inline-flex items-center gap-1">
-            <ArrowLeft className="h-4 w-4" /> Zurück zu Einstellungen
-          </span>
-        </Link>
-      </div>
-
       <PageHeader
         title="Parkplätze"
         description="Tiefgaragen-Stellplätze. W&W-Stand wird per XLS-Import gespiegelt. Booking-Belegungen werden direkt hier gepflegt."
         actions={
-          <Link href={{ pathname: '/settings/parking/import' }}>
+          <Link href={{ pathname: '/parking/import' }}>
             <Button>
               <Upload className="h-4 w-4" />
               Mieterspiegel importieren
@@ -112,7 +104,7 @@ export default async function ParkingPage({
           <Link
             key={key}
             href={{
-              pathname: '/settings/parking',
+              pathname: '/parking',
               query: key === 'all' ? undefined : { filter: key },
             }}
             className={`rounded-md border px-3 py-1.5 text-xs transition ${
@@ -145,7 +137,7 @@ export default async function ParkingPage({
                   <tr key={r.id} className="hover:bg-slate-50">
                     <td className="px-3 py-2 font-mono font-semibold">
                       <Link
-                        href={`/settings/parking/${r.id}` as never}
+                        href={`/parking/${r.id}` as never}
                         className="hover:underline"
                       >
                         {r.number}

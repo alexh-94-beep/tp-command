@@ -9,6 +9,7 @@ import {
   FileText,
   Users,
   Settings,
+  ParkingSquare,
 } from 'lucide-react';
 import type { AppRole } from '@/lib/auth/rbac';
 
@@ -22,6 +23,7 @@ export type NavHref =
   | '/payments'
   | '/invoices'
   | '/tenants'
+  | '/parking'
   | '/settings';
 
 export type IconType = React.ComponentType<{ className?: string }>;
@@ -53,6 +55,12 @@ export const NAV_ITEMS: NavItem[] = [
     roles: ['admin', 'office', 'management'],
   },
   { label: 'Mieter & Gäste', href: '/tenants', icon: Users },
+  {
+    label: 'Parkplätze',
+    href: '/parking',
+    icon: ParkingSquare,
+    roles: ['admin', 'office', 'management', 'cleaning'],
+  },
   { label: 'Einstellungen', href: '/settings', icon: Settings, roles: ['admin'] },
 ];
 

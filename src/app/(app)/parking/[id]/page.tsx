@@ -43,7 +43,7 @@ export default async function ParkingSpotDetailPage({
   return (
     <div className="space-y-6">
       <div className="flex items-center gap-2 text-sm">
-        <Link href={{ pathname: '/settings/parking' }} className="text-slate-500 hover:text-slate-700">
+        <Link href={{ pathname: '/parking' }} className="text-slate-500 hover:text-slate-700">
           <span className="inline-flex items-center gap-1">
             <ArrowLeft className="h-4 w-4" /> Zurück zur Liste
           </span>

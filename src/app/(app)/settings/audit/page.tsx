@@ -37,7 +37,7 @@ const ENTITY_HREF: Record<AuditEntity, ((id: string) => string) | null> = {
   apartment_damage: null,
   pending_reservation: null,
   external_owner: null,
-  parking_spot: (id) => `/settings/parking/${id}`,
+  parking_spot: (id) => `/parking/${id}`,
   parking_assignment: null,
   user: null,
 };
