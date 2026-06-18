@@ -107,10 +107,14 @@ export function MobileNav({
             </nav>
 
             <div className="border-t border-slate-200 p-3">
-              <div className="mb-2 px-3 text-xs text-slate-500">
+              <Link
+                href={{ pathname: '/account' }}
+                onClick={() => setOpen(false)}
+                className="mb-2 block rounded-md px-3 py-1.5 text-xs text-slate-500 hover:bg-slate-100"
+              >
                 <div className="font-medium text-slate-900">{userName}</div>
-                <div className="text-[11px]">{userRoleLabel}</div>
-              </div>
+                <div className="text-[11px]">{userRoleLabel} · Passwort ändern</div>
+              </Link>
               <form action="/auth/logout" method="post">
                 <button
                   type="submit"

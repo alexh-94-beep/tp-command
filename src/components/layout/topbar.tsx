@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import type { AppUser } from '@/lib/auth/session';
 
 const roleLabel: Record<AppUser['role'], string> = {
@@ -17,10 +18,14 @@ export function Topbar({ user }: { user: AppUser }) {
       <div className="text-sm text-slate-500">TP-Command – internes Betriebssystem</div>
 
       <div className="flex items-center gap-4">
-        <div className="text-right text-sm leading-tight">
+        <Link
+          href={{ pathname: '/account' }}
+          className="text-right text-sm leading-tight hover:opacity-80"
+          title="Mein Konto / Passwort ändern"
+        >
           <div className="font-medium text-slate-900">{user.fullName}</div>
           <div className="text-xs text-slate-500">{roleLabel[user.role]}</div>
-        </div>
+        </Link>
         <form action="/auth/logout" method="post">
           <button
             type="submit"
