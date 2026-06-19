@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeDueDate, evaluateConditionalStatus } from './instantiate';
+import { computeDueDate, evaluateConditionalStatus, pickAssignee } from './instantiate';
 
 describe('computeDueDate', () => {
   const dates = {
@@ -58,5 +58,40 @@ describe('evaluateConditionalStatus', () => {
 
   it('condition_key=null -> open', () => {
     expect(evaluateConditionalStatus(null, { parking_included: false })).toBe('open');
+  });
+});
+
+describe('pickAssignee', () => {
+  const alex = { id: 'alex', role: 'admin' };
+  const sharon = { id: 'sharon', role: 'office' };
+  const mireme = { id: 'mireme', role: 'cleaning' };
+  const all = [alex, sharon, mireme];
+
+  it('cleaning-Task → Mireme (auch wenn Admin der Creator ist)', () => {
+    expect(pickAssignee('cleaning', alex, all)).toBe('mireme');
+  });
+
+  it('office-Task vom Admin-Creator → Sharon', () => {
+    expect(pickAssignee('office', alex, all)).toBe('sharon');
+  });
+
+  it('office-Task vom Sharon-Creator (selbst office) → Sharon', () => {
+    expect(pickAssignee('office', sharon, all)).toBe('sharon');
+  });
+
+  it('admin-Task → Admin', () => {
+    expect(pickAssignee('admin', alex, all)).toBe('alex');
+  });
+
+  it('cleaning-Task ohne cleaning-User, Admin als Creator → Fallback Admin', () => {
+    expect(pickAssignee('cleaning', alex, [alex, sharon])).toBe('alex');
+  });
+
+  it('cleaning-Task ohne cleaning-User, ohne Admin-Creator → null', () => {
+    expect(pickAssignee('cleaning', sharon, [sharon])).toBeNull();
+  });
+
+  it('assigneeRole=any → null (Office verteilt manuell)', () => {
+    expect(pickAssignee('any', alex, all)).toBeNull();
   });
 });

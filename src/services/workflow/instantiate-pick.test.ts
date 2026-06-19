@@ -24,10 +24,17 @@ describe('pickAssignee', () => {
     expect(pickAssignee('office', sharon, users)).toBe('u-sharon');
   });
 
-  it('admin als creator → bekommt office-Tasks (Super-User)', () => {
+  it('admin als creator → wenn Rollen-User da ist, geht der Task an den Rollen-User (nicht den Admin)', () => {
+    // Phase 25c-Bug-Fix: vorher landeten cleaning-Tasks (z.B. "Inventar
+    // pruefen") beim Admin-Creator. Jetzt korrekt: Mireme statt Alex.
     const alex = { id: 'u-alex', role: 'admin' };
-    expect(pickAssignee('office', alex, users)).toBe('u-alex');
-    expect(pickAssignee('cleaning', alex, users)).toBe('u-alex');
+    expect(pickAssignee('office', alex, users)).toBe('u-brian');
+    expect(pickAssignee('cleaning', alex, users)).toBe('u-mireme');
+  });
+
+  it('admin als creator + keine Rollen-User → Admin als Fallback (statt verwaister Task)', () => {
+    const alex = { id: 'u-alex', role: 'admin' };
+    expect(pickAssignee('cleaning', alex, [alex])).toBe('u-alex');
   });
 
   it('creator passt nicht → Fallback firstOfRole', () => {

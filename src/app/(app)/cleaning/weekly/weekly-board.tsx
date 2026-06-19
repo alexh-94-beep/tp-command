@@ -145,11 +145,18 @@ export default function WeeklyBoard({
   });
 
   const today = new Date().toISOString().slice(0, 10);
+  // Verwaiste Tasks (staff_id zeigt auf inaktiven Staff) landen
+  // im "Nicht zugewiesen"-Bucket statt komplett zu verschwinden.
+  const knownStaffIds = new Set(staff.map((s) => s.id));
 
   function tasksFor(row: Row, date: string) {
     if (row.key === 'unassigned') {
       return tasks
-        .filter((t) => !t.staff_id && t.scheduled_date === date)
+        .filter(
+          (t) =>
+            t.scheduled_date === date &&
+            (!t.staff_id || !knownStaffIds.has(t.staff_id)),
+        )
         .sort((a, b) => (a.scheduled_time ?? '99').localeCompare(b.scheduled_time ?? '99'));
     }
     return tasks

@@ -115,7 +115,13 @@ export default function DailyBoard({
     }
   }
 
-  const unassigned = tasks.filter((t) => !t.staff_id);
+  // Phase: Verwaiste Tasks (staff_id zeigt auf inaktiven/geloeschten Staff)
+  // landen im "Nicht zugewiesen"-Bucket. Sonst fielen sie durchs Raster
+  // (kein Staff in groups → kein Render).
+  const knownStaffIds = new Set(initialStaff.map((s) => s.id));
+  const unassigned = tasks.filter(
+    (t) => !t.staff_id || !knownStaffIds.has(t.staff_id),
+  );
 
   return (
     <div className="space-y-6">

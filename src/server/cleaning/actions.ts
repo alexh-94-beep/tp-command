@@ -225,7 +225,7 @@ export async function saveInspection(input: {
 }
 
 export async function saveActualDuration(taskId: string, minutes: number | null) {
-  await requireRole(['admin', 'office']);
+  await requireRole(['admin', 'office', 'cleaning']);
   const supabase = await createSupabaseServerClient();
   const { error } = await supabase
     .from('cleaning_tasks')

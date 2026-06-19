@@ -74,11 +74,15 @@ export function pickAssignee(
   usersByRole: Array<{ id: string; role: string }>,
 ): string | null {
   if (!assigneeRole || assigneeRole === 'any') return null;
-  if (creator && (creator.role === assigneeRole || creator.role === 'admin')) {
-    return creator.id;
-  }
+  // 1. Creator hat exakt die Zielrolle → er bekommt die Aufgabe selbst.
+  if (creator && creator.role === assigneeRole) return creator.id;
+  // 2. Ein anderer User mit der Zielrolle → er kriegt sie.
   const u = usersByRole.find((x) => x.role === assigneeRole);
-  return u?.id ?? null;
+  if (u) return u.id;
+  // 3. Fallback: Admin-Creator landet als Auffangbecken, damit die Aufgabe
+  //    nicht verwaist. Nur wenn kein passender Rollen-User existiert.
+  if (creator && creator.role === 'admin') return creator.id;
+  return null;
 }
 
 export async function instantiateBookingTasks(
