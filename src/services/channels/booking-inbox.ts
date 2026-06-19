@@ -350,7 +350,17 @@ async function ensurePendingReservation(
     })
     .select('id')
     .single();
-  if (error) return null;
+  if (error) {
+    console.error(
+      '[ensurePendingReservation] insert failed for uid=' +
+        r.externalUid +
+        ':',
+      error.message,
+      error.details,
+      error.hint,
+    );
+    return null;
+  }
   return created.id;
 }
 
