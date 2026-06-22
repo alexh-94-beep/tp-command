@@ -44,6 +44,10 @@ const typeLabel: Record<CleaningType, string> = {
   inspection: 'Inspektion',
   weekly_clean: 'Wöchentlich',
   weekly_clean_linen: 'Wöchentlich + Bettwäsche',
+  biweekly_clean: 'Zweiwöchentlich',
+  biweekly_clean_linen: 'Zweiwöchentlich + Wäsche',
+  monthly_clean: 'Monatlich',
+  monthly_clean_linen: 'Monatlich + Wäsche',
 };
 
 interface SearchParams {

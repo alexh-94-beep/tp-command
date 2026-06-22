@@ -538,6 +538,7 @@ export type Database = {
           check_in_time: string | null
           check_out_status: Database["public"]["Enums"]["checkinout_status"]
           check_out_time: string | null
+          cleaning_via_ww: boolean
           contract_status: Database["public"]["Enums"]["contract_status"]
           created_at: string
           deposit_amount: number
@@ -570,6 +571,7 @@ export type Database = {
           check_in_time?: string | null
           check_out_status?: Database["public"]["Enums"]["checkinout_status"]
           check_out_time?: string | null
+          cleaning_via_ww?: boolean
           contract_status?: Database["public"]["Enums"]["contract_status"]
           created_at?: string
           deposit_amount?: number
@@ -602,6 +604,7 @@ export type Database = {
           check_in_time?: string | null
           check_out_status?: Database["public"]["Enums"]["checkinout_status"]
           check_out_time?: string | null
+          cleaning_via_ww?: boolean
           contract_status?: Database["public"]["Enums"]["contract_status"]
           created_at?: string
           deposit_amount?: number
@@ -2383,6 +2386,10 @@ export type Database = {
         | "inspection"
         | "weekly_clean"
         | "weekly_clean_linen"
+        | "biweekly_clean"
+        | "biweekly_clean_linen"
+        | "monthly_clean"
+        | "monthly_clean_linen"
       communication_channel: "email" | "sms" | "internal"
       communication_status:
         | "draft"
@@ -3128,6 +3135,10 @@ export const Constants = {
         "inspection",
         "weekly_clean",
         "weekly_clean_linen",
+        "biweekly_clean",
+        "biweekly_clean_linen",
+        "monthly_clean",
+        "monthly_clean_linen",
       ],
       communication_channel: ["email", "sms", "internal"],
       communication_status: [

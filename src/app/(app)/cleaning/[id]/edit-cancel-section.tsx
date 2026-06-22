@@ -24,6 +24,10 @@ const TYPE_OPTIONS = [
   { v: 'inspection', label: 'Inspektion' },
   { v: 'weekly_clean', label: 'Wöchentlich' },
   { v: 'weekly_clean_linen', label: 'Wöchentlich + Wäsche' },
+  { v: 'biweekly_clean', label: 'Zweiwöchentlich' },
+  { v: 'biweekly_clean_linen', label: 'Zweiwöchentlich + Wäsche' },
+  { v: 'monthly_clean', label: 'Monatlich' },
+  { v: 'monthly_clean_linen', label: 'Monatlich + Wäsche' },
 ] as const;
 
 const PRIORITY_OPTIONS = [

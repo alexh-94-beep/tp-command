@@ -29,6 +29,7 @@ const schema = z.object({
   contract_status: z.enum(['draft', 'sent', 'signed', 'cancelled']),
   status: z.enum(['planned', 'active', 'completed', 'cancelled']),
   invoiced_via: z.enum(['w_w', 'direct']).default('w_w'),
+  cleaning_via_ww: z.coerce.boolean().default(true),
   check_in_status: z.enum(['pending', 'completed']),
   check_out_status: z.enum(['pending', 'completed']),
   external_reference: z.string().optional().nullable(),
@@ -47,6 +48,7 @@ export async function updateBooking(formData: FormData): Promise<UpdateBookingRe
 
   const raw: Record<string, unknown> = Object.fromEntries(formData.entries());
   raw.parking_included = formData.has('parking_included');
+  raw.cleaning_via_ww = formData.has('cleaning_via_ww');
 
   for (const k of ['short_term_flat_rate', 'parking_fee', 'external_reference', 'notes']) {
     if (raw[k] === '') raw[k] = null;
@@ -106,6 +108,7 @@ export async function updateBooking(formData: FormData): Promise<UpdateBookingRe
     check_out_status: v.check_out_status,
     external_reference: v.external_reference ?? null,
     invoiced_via: v.rental_type === 'short_term' ? v.invoiced_via : 'w_w',
+    cleaning_via_ww: v.rental_type === 'booking' ? false : v.cleaning_via_ww,
     notes: v.notes ?? null,
   };
   const { error: updateErr } = await supabase

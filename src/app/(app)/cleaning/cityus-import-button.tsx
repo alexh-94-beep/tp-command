@@ -16,6 +16,10 @@ const TYPE_LABEL: Record<string, string> = {
   checkout: 'Final Clean',
   weekly_clean: 'Weekly Clean',
   weekly_clean_linen: 'Weekly + Bettwäsche',
+  biweekly_clean: 'Zweiwöchentlich',
+  biweekly_clean_linen: 'Zweiwöchentlich + Wäsche',
+  monthly_clean: 'Monatlich',
+  monthly_clean_linen: 'Monatlich + Wäsche',
   special: 'Spezial',
 };
 

@@ -85,6 +85,8 @@ export default function CleaningToolbar({
           <option value="pre_checkin">Pre-Checkin</option>
           <option value="inspection">Inspektion</option>
           <option value="weekly_clean">Wöchentlich</option>
+          <option value="biweekly_clean">Zweiwöchentlich</option>
+          <option value="monthly_clean">Monatlich</option>
           <option value="intermediate">Wiederkehrend</option>
           <option value="special">Spezial</option>
           <option value="deep_clean">Endreinigung</option>

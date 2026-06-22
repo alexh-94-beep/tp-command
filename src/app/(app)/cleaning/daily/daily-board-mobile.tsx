@@ -23,6 +23,10 @@ import type { DailyStaff, DailyTask } from './daily-board';
 const TYPE_LABEL: Record<CleaningType, string> = {
   weekly_clean: 'Wöchentlich',
   weekly_clean_linen: 'Wöchentl. + Wäsche',
+  biweekly_clean: 'Zweiwöchentlich',
+  biweekly_clean_linen: 'Zweiwöchentlich + Wäsche',
+  monthly_clean: 'Monatlich',
+  monthly_clean_linen: 'Monatlich + Wäsche',
   checkout: 'Auszug',
   pre_checkin: 'Pre-Checkin',
   intermediate: 'Zwischen',

@@ -364,6 +364,25 @@ export default function NewBookingForm({
               )}
             </div>
 
+            {rentalType !== 'booking' && (
+              <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
+                <label className="inline-flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    name="cleaning_via_ww"
+                    defaultChecked
+                  />
+                  <span>
+                    Reinigung wird über <strong>W&amp;W</strong> abgerechnet
+                  </span>
+                </label>
+                <p className="mt-1 text-xs text-slate-500">
+                  Standard. Abhaken wenn Reinigung direkt mit dem Mieter
+                  verrechnet wird (Auswertung für Sharon).
+                </p>
+              </div>
+            )}
+
             {rentalType === 'long_term' && (
               <div>
                 <label className={labelCls}>Vertragsstatus</label>

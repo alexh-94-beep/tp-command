@@ -35,6 +35,7 @@ interface BookingFormState {
   check_out_status: CheckInOutStatus;
   external_reference: string | null;
   invoiced_via: 'w_w' | 'direct';
+  cleaning_via_ww: boolean;
   notes: string | null;
 }
 
@@ -299,6 +300,25 @@ export default function EditBookingForm({ booking }: { booking: BookingFormState
                 />
               </div>
             </div>
+
+            {!isBooking && (
+              <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
+                <label className="inline-flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    name="cleaning_via_ww"
+                    defaultChecked={booking.cleaning_via_ww}
+                  />
+                  <span>
+                    Reinigung wird über <strong>W&amp;W</strong> abgerechnet
+                  </span>
+                </label>
+                <p className="mt-1 text-xs text-slate-500">
+                  Abhaken wenn Reinigung direkt mit dem Mieter verrechnet wird
+                  (Auswertung für Sharon).
+                </p>
+              </div>
+            )}
 
             <div>
               <label className={labelCls}>Notizen</label>

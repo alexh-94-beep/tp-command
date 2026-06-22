@@ -37,6 +37,9 @@ const schema = z.object({
   status: z.enum(['planned', 'active', 'completed', 'cancelled']).default('planned'),
   // Phase 25a: Abrechnungsweg, relevant nur fuer short_term. Default w_w.
   invoiced_via: z.enum(['w_w', 'direct']).default('w_w'),
+  // Phase 26a: Reinigung ueber W&W abgerechnet? Default true.
+  // Bei rental_type='booking' irrelevant.
+  cleaning_via_ww: z.coerce.boolean().default(true),
   notes: z.string().optional(),
   // Mieter / Gast (inline)
   tenant_kind: z.enum(['tenant', 'guest']).default('tenant'),
@@ -61,6 +64,8 @@ export async function createBooking(formData: FormData): Promise<CreateBookingRe
 
   const raw: Record<string, unknown> = Object.fromEntries(formData.entries());
   raw.parking_included = formData.has('parking_included');
+  // Checkbox: nicht-angekreuzt = field fehlt im FormData komplett.
+  raw.cleaning_via_ww = formData.has('cleaning_via_ww');
 
   for (const k of [
     'channel_id',
@@ -162,6 +167,7 @@ export async function createBooking(formData: FormData): Promise<CreateBookingRe
       contract_status: v.rental_type === 'booking' ? 'signed' : v.contract_status,
       status: v.status,
       invoiced_via: v.rental_type === 'short_term' ? v.invoiced_via : 'w_w',
+      cleaning_via_ww: v.rental_type === 'booking' ? false : v.cleaning_via_ww,
       notes: v.notes ?? null,
     })
     .select('id')
