@@ -25,6 +25,7 @@ interface SearchParams {
   type?: string;
   status?: string;
   ownership?: string;
+  subleased?: string; // 'cityus' | 'any' | ''
 }
 
 export default async function ApartmentsPage({
@@ -47,6 +48,27 @@ export default async function ApartmentsPage({
   if (types.length) query = query.in('type', types);
   if (statuses.length) query = query.in('status', statuses);
   if (ownerships.length) query = query.in('ownership', ownerships);
+
+  // Phase 26b: Sub-vermietet (Cityus). Liefert nur Wohnungen mit aktivem
+  // subleasing_stay (planned oder in_stay), optional gefiltert auf source.
+  if (sp.subleased === 'cityus' || sp.subleased === 'any') {
+    const today = new Date().toISOString().slice(0, 10);
+    let subQ = supabase
+      .from('subleasing_stays')
+      .select('apartment_id')
+      .in('status', ['planned', 'in_stay'])
+      .lte('check_in_date', today)
+      .gt('check_out_date', today);
+    if (sp.subleased === 'cityus') subQ = subQ.eq('source', 'cityus');
+    const { data: subRows } = await subQ;
+    const ids = [...new Set((subRows ?? []).map((r) => r.apartment_id))];
+    if (ids.length === 0) {
+      // Kein Match → leere Liste erzwingen
+      query = query.eq('id', '00000000-0000-0000-0000-000000000000');
+    } else {
+      query = query.in('id', ids);
+    }
+  }
   if (sp.q) {
     const term = sp.q.trim();
     if (term) {

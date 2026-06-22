@@ -53,6 +53,16 @@ export default function FilterBar({ matchCount }: { matchCount: number }) {
     });
   }
 
+  function updateSubleased(value: string) {
+    const next = new URLSearchParams(sp.toString());
+    if (value) next.set('subleased', value);
+    else next.delete('subleased');
+    const q = next.toString();
+    startTransition(() => {
+      router.replace(q ? `/apartments?${q}` : '/apartments', { scroll: false });
+    });
+  }
+
   function reset() {
     startTransition(() => router.replace('/apartments', { scroll: false }));
   }
@@ -93,6 +103,21 @@ export default function FilterBar({ matchCount }: { matchCount: number }) {
         options={OWNERSHIP_OPTIONS}
         basePath="/apartments"
       />
+
+      <div className="flex items-center gap-2 text-xs">
+        <label className="font-semibold tracking-wide text-slate-500 uppercase">
+          Sub-vermietet
+        </label>
+        <select
+          className={inputCls + ' w-auto'}
+          value={sp.get('subleased') ?? ''}
+          onChange={(e) => updateSubleased(e.target.value)}
+        >
+          <option value="">Alle</option>
+          <option value="cityus">Cityus (heute aktiv)</option>
+          <option value="any">Beliebig sub-vermietet (heute aktiv)</option>
+        </select>
+      </div>
 
       <div className="flex items-center justify-between border-t border-slate-100 pt-3 text-xs text-slate-500">
         <span>{pending ? 'Filtere …' : `${matchCount} Treffer`}</span>
