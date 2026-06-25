@@ -21,7 +21,7 @@ const typeLabel: Record<CleaningType, string> = {
   pre_checkin: 'Pre-Checkin',
   intermediate: 'Wiederkehrend',
   special: 'Spezial',
-  deep_clean: 'Endreinigung',
+  deep_clean: 'Abnahmereinigung',
   inspection: 'Inspektion',
   weekly_clean: 'Wöchentliche Reinigung',
   weekly_clean_linen: 'Wöchentlich + Bettwäsche',

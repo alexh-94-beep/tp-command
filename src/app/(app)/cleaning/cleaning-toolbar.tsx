@@ -89,7 +89,7 @@ export default function CleaningToolbar({
           <option value="monthly_clean">Monatlich</option>
           <option value="intermediate">Wiederkehrend</option>
           <option value="special">Spezial</option>
-          <option value="deep_clean">Endreinigung</option>
+          <option value="deep_clean">Abnahmereinigung</option>
         </select>
       </div>
 

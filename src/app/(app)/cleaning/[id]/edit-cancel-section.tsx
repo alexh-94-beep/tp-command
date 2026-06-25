@@ -20,7 +20,7 @@ const TYPE_OPTIONS = [
   { v: 'pre_checkin', label: 'Pre-Checkin' },
   { v: 'intermediate', label: 'Zwischenreinigung' },
   { v: 'special', label: 'Spezial' },
-  { v: 'deep_clean', label: 'Endreinigung' },
+  { v: 'deep_clean', label: 'Abnahmereinigung' },
   { v: 'inspection', label: 'Inspektion' },
   { v: 'weekly_clean', label: 'Wöchentlich' },
   { v: 'weekly_clean_linen', label: 'Wöchentlich + Wäsche' },

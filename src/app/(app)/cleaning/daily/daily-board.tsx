@@ -23,7 +23,7 @@ const TYPE_LABELS: Record<CleaningType, string> = {
   monthly_clean_linen: 'Monatlich + Wäsche',
   inspection: 'Inspektion',
   special: 'Spezial',
-  deep_clean: 'Endreinigung',
+  deep_clean: 'Abnahmereinigung',
 };
 
 const STATUS_TONE: Record<CleaningStatus, 'neutral' | 'warning' | 'info' | 'success' | 'danger'> = {

@@ -95,9 +95,19 @@ function buildHandoverDeepCleanNotes(booking: {
       .join(' ')
       .trim() || null;
   const header = guestName
-    ? `Wohnungsabnahmereinigung (Langzeit-Auszug) — ${guestName}.`
-    : 'Wohnungsabnahmereinigung (Langzeit-Auszug).';
-  const lines = [header, 'Automatisch erstellt aus Workflow-Aufgabe.'];
+    ? `Abnahmereinigung (Langzeit-Auszug) — ${guestName}.`
+    : 'Abnahmereinigung (Langzeit-Auszug).';
+  const lines = [
+    header,
+    'Tiefgründige Reinigung — bitte zusätzlich kontrollieren:',
+    '  • Fenster innen + außen',
+    '  • Balkon / Terrasse',
+    '  • Backofen + Dunstabzug',
+    '  • Kühl- und Gefrierschrank (innen)',
+    '  • Schränke leer + ausgewischt',
+    '  • Lampen / Lichtschalter / Steckdosen',
+    '  • Badezimmer entkalkt',
+  ];
   const bookingNote = (booking.notes ?? '').trim();
   if (bookingNote) lines.push('', 'Notiz aus Buchung:', bookingNote);
   return lines.join('\n');

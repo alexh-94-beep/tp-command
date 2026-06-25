@@ -32,7 +32,7 @@ const TYPE_LABEL: Record<CleaningType, string> = {
   intermediate: 'Zwischen',
   inspection: 'Inspektion',
   special: 'Spezial',
-  deep_clean: 'Endreinigung',
+  deep_clean: 'Abnahmereinigung',
 };
 
 const STATUS_TONE: Record<CleaningStatus, 'neutral' | 'warning' | 'info' | 'success' | 'danger'> = {
