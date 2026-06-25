@@ -36,6 +36,8 @@ interface BookingFormState {
   external_reference: string | null;
   invoiced_via: 'w_w' | 'direct';
   cleaning_via_ww: boolean;
+  cleaning_recurrence: 'none' | 'weekly' | 'biweekly' | 'monthly';
+  cleaning_recurrence_linen: boolean;
   notes: string | null;
 }
 
@@ -316,6 +318,37 @@ export default function EditBookingForm({ booking }: { booking: BookingFormState
                 <p className="mt-1 text-xs text-slate-500">
                   Abhaken wenn Reinigung direkt mit dem Mieter verrechnet wird
                   (Auswertung für Sharon).
+                </p>
+              </div>
+            )}
+
+            {!isBooking && (
+              <div className="rounded-md border border-slate-200 bg-slate-50 p-3 space-y-2">
+                <div>
+                  <label className={labelCls}>Wiederkehrende Reinigung</label>
+                  <select
+                    className={inputCls}
+                    name="cleaning_recurrence"
+                    defaultValue={booking.cleaning_recurrence}
+                  >
+                    <option value="none">Keine</option>
+                    <option value="weekly">Wöchentlich</option>
+                    <option value="biweekly">Zweiwöchentlich</option>
+                    <option value="monthly">Monatlich</option>
+                  </select>
+                </div>
+                <label className="inline-flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    name="cleaning_recurrence_linen"
+                    defaultChecked={booking.cleaning_recurrence_linen}
+                  />
+                  <span>Inkl. Bettwäschewechsel</span>
+                </label>
+                <p className="text-xs text-slate-500">
+                  Cron generiert die Aufträge täglich (bis zum Auszug bzw. 3 Monate
+                  rollend bei unbefristeten Buchungen). Sa→Fr / So→Mo automatisch,
+                  Mireme kann manuell aufs Wochenende zurückziehen.
                 </p>
               </div>
             )}

@@ -24,7 +24,8 @@ export default async function EditBookingPage({
       id, apartment_id, rental_type, external_reference,
       start_date, end_date, rent_amount, deposit_amount,
       short_term_flat_rate, parking_included, parking_fee,
-      contract_status, status, check_in_status, check_out_status, invoiced_via, cleaning_via_ww, notes,
+      contract_status, status, check_in_status, check_out_status, invoiced_via, cleaning_via_ww,
+      cleaning_recurrence, cleaning_recurrence_linen, notes,
       apartment:apartments(number),
       tenant:tenants!bookings_tenant_id_fkey(first_name, last_name)
     `,
@@ -73,6 +74,8 @@ export default async function EditBookingPage({
           external_reference: data.external_reference,
           invoiced_via: data.invoiced_via,
           cleaning_via_ww: data.cleaning_via_ww,
+          cleaning_recurrence: data.cleaning_recurrence,
+          cleaning_recurrence_linen: data.cleaning_recurrence_linen,
           notes: data.notes,
         }}
       />

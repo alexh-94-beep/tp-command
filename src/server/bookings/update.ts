@@ -30,6 +30,8 @@ const schema = z.object({
   status: z.enum(['planned', 'active', 'completed', 'cancelled']),
   invoiced_via: z.enum(['w_w', 'direct']).default('w_w'),
   cleaning_via_ww: z.coerce.boolean().default(true),
+  cleaning_recurrence: z.enum(['none', 'weekly', 'biweekly', 'monthly']).default('none'),
+  cleaning_recurrence_linen: z.coerce.boolean().default(false),
   check_in_status: z.enum(['pending', 'completed']),
   check_out_status: z.enum(['pending', 'completed']),
   external_reference: z.string().optional().nullable(),
@@ -109,6 +111,10 @@ export async function updateBooking(formData: FormData): Promise<UpdateBookingRe
     external_reference: v.external_reference ?? null,
     invoiced_via: v.rental_type === 'short_term' ? v.invoiced_via : 'w_w',
     cleaning_via_ww: v.rental_type === 'booking' ? false : v.cleaning_via_ww,
+    cleaning_recurrence:
+      v.rental_type === 'booking' ? 'none' : v.cleaning_recurrence,
+    cleaning_recurrence_linen:
+      v.rental_type === 'booking' ? false : v.cleaning_recurrence_linen,
     notes: v.notes ?? null,
   };
   const { error: updateErr } = await supabase
@@ -155,6 +161,16 @@ export async function updateBooking(formData: FormData): Promise<UpdateBookingRe
   // Phase 15: Editor bekommt neu hinzugefuegte office-Tasks als Assignee
   await instantiateBookingTasks(supabase, v.id, user.id);
   await recomputeBookingTaskDueDates(supabase, v.id);
+
+  // Phase 26d: Wenn cleaning_recurrence geaendert wurde, sofort die
+  // Serien-Reinigungen angleichen (zukuenftige Termine neu erzeugen
+  // bzw. ueberfluessige loeschen).
+  if (newPatch.cleaning_recurrence !== 'none' || existing.rental_type !== v.rental_type) {
+    const { applyCleaningRecurrenceForBooking } = await import(
+      '@/services/cleaning/apply-recurrence'
+    );
+    await applyCleaningRecurrenceForBooking(supabase, v.id);
+  }
 
   revalidatePath('/bookings');
   revalidatePath('/tasks');

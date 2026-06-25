@@ -538,6 +538,8 @@ export type Database = {
           check_in_time: string | null
           check_out_status: Database["public"]["Enums"]["checkinout_status"]
           check_out_time: string | null
+          cleaning_recurrence: Database["public"]["Enums"]["cleaning_recurrence_kind"]
+          cleaning_recurrence_linen: boolean
           cleaning_via_ww: boolean
           contract_status: Database["public"]["Enums"]["contract_status"]
           created_at: string
@@ -571,6 +573,8 @@ export type Database = {
           check_in_time?: string | null
           check_out_status?: Database["public"]["Enums"]["checkinout_status"]
           check_out_time?: string | null
+          cleaning_recurrence?: Database["public"]["Enums"]["cleaning_recurrence_kind"]
+          cleaning_recurrence_linen?: boolean
           cleaning_via_ww?: boolean
           contract_status?: Database["public"]["Enums"]["contract_status"]
           created_at?: string
@@ -604,6 +608,8 @@ export type Database = {
           check_in_time?: string | null
           check_out_status?: Database["public"]["Enums"]["checkinout_status"]
           check_out_time?: string | null
+          cleaning_recurrence?: Database["public"]["Enums"]["cleaning_recurrence_kind"]
+          cleaning_recurrence_linen?: boolean
           cleaning_via_ww?: boolean
           contract_status?: Database["public"]["Enums"]["contract_status"]
           created_at?: string
@@ -888,6 +894,7 @@ export type Database = {
           external_apartment_id: string | null
           id: string
           inspection_summary: string | null
+          is_recurring: boolean
           linen_change: boolean
           notes: string | null
           priority: Database["public"]["Enums"]["cleaning_priority"]
@@ -924,6 +931,7 @@ export type Database = {
           external_apartment_id?: string | null
           id?: string
           inspection_summary?: string | null
+          is_recurring?: boolean
           linen_change?: boolean
           notes?: string | null
           priority?: Database["public"]["Enums"]["cleaning_priority"]
@@ -960,6 +968,7 @@ export type Database = {
           external_apartment_id?: string | null
           id?: string
           inspection_summary?: string | null
+          is_recurring?: boolean
           linen_change?: boolean
           notes?: string | null
           priority?: Database["public"]["Enums"]["cleaning_priority"]
@@ -2371,6 +2380,7 @@ export type Database = {
         | "unknown"
       cleaning_frequency: "weekly" | "biweekly"
       cleaning_priority: "low" | "normal" | "high" | "urgent"
+      cleaning_recurrence_kind: "none" | "weekly" | "biweekly" | "monthly"
       cleaning_status:
         | "open"
         | "in_progress"
@@ -3119,6 +3129,7 @@ export const Constants = {
       ],
       cleaning_frequency: ["weekly", "biweekly"],
       cleaning_priority: ["low", "normal", "high", "urgent"],
+      cleaning_recurrence_kind: ["none", "weekly", "biweekly", "monthly"],
       cleaning_status: [
         "open",
         "in_progress",
