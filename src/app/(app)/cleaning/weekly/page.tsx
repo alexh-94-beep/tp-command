@@ -83,6 +83,7 @@ export default async function WeeklyPage({
       <WeeklyToolbar weekStart={weekStart} />
 
       <WeeklyBoard
+        key={weekStart}
         weekStart={weekStart}
         days={days}
         staff={weeklyStaff}

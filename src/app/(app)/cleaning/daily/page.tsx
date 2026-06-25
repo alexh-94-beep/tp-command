@@ -89,13 +89,19 @@ export default async function DailyPage({
 
       <div className="md:hidden">
         <DailyBoardMobile
+          key={date}
           date={date}
           initialStaff={dailyStaff}
           initialTasks={dailyTasks}
         />
       </div>
       <div className="hidden md:block">
-        <DailyBoard date={date} initialStaff={dailyStaff} initialTasks={dailyTasks} />
+        <DailyBoard
+          key={date}
+          date={date}
+          initialStaff={dailyStaff}
+          initialTasks={dailyTasks}
+        />
       </div>
     </div>
   );
