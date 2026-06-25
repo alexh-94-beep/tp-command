@@ -20,6 +20,10 @@
     {
       "path": "/api/cron/booking-inbox-poll",
       "schedule": "15 6 * * *"
+    },
+    {
+      "path": "/api/cron/generate-recurring-cleanings",
+      "schedule": "20 6 * * *"
     }
   ]
 }
