@@ -69,3 +69,41 @@ describe('deriveSlot', () => {
     expect(slot.windowRange).toMatch(/\[2026-08-20 16:00:00/);
   });
 });
+
+import { buildCheckoutCleaningNotes } from './generate';
+
+describe('buildCheckoutCleaningNotes', () => {
+  it('Booking-Auszug ohne Gast ohne Notiz', () => {
+    const r = buildCheckoutCleaningNotes(null, null, 'booking', null, null);
+    expect(r).toBe('Auszug Booking-Gast.');
+  });
+
+  it('Booking-Auszug mit Gast-Name', () => {
+    const r = buildCheckoutCleaningNotes(null, null, 'booking', 'Tobias Hein', null);
+    expect(r).toBe('Auszug Booking-Gast — Tobias Hein.');
+  });
+
+  it('Mit Booking-Notiz haengt sie unten dran', () => {
+    const r = buildCheckoutCleaningNotes(
+      null,
+      null,
+      'short_term',
+      'Anna Mueller',
+      'Klappbett benötigt',
+    );
+    expect(r).toContain('Auszug Mieter — Anna Mueller.');
+    expect(r).toContain('Notiz aus Buchung:\nKlappbett benötigt');
+  });
+
+  it('Mit handover_planned_at kommt der Slot in den Header', () => {
+    const r = buildCheckoutCleaningNotes(
+      '2026-07-15T14:00:00Z',
+      null,
+      'long_term',
+      'Familie Mueller',
+      null,
+    );
+    expect(r).toMatch(/Geplant nach Wohnungsabnahme um/);
+    expect(r).toContain('Familie Mueller');
+  });
+});

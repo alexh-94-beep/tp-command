@@ -96,11 +96,16 @@ export async function ensureCheckoutCleaningForBooking(
   const { data: booking, error } = await supabase
     .from('bookings')
     .select(
-      'id, apartment_id, end_date, check_out_time, rental_type, handover_planned_at, handover_completed_at, apartment:apartments(type)',
+      'id, apartment_id, end_date, check_out_time, rental_type, handover_planned_at, handover_completed_at, notes, apartment:apartments(type), tenant:tenants!bookings_tenant_id_fkey(first_name, last_name)',
     )
     .eq('id', bookingId)
     .single();
   if (error || !booking) return { ok: false, error: error?.message ?? 'Buchung nicht gefunden' };
+
+  const guestName =
+    [booking.tenant?.first_name, booking.tenant?.last_name].filter(Boolean).join(' ').trim() ||
+    null;
+  const bookingNote = (booking.notes ?? '').trim() || null;
 
   const aptType = booking.apartment?.type ?? 'senior';
   const source: CleaningSource = booking.rental_type === 'booking' ? 'booking' : 'own';
@@ -141,11 +146,13 @@ export async function ensureCheckoutCleaningForBooking(
       scheduled_date: slot.date,
       scheduled_window: slot.windowRange,
       estimated_duration_minutes: minutes,
-      notes: booking.handover_planned_at
-        ? `Geplant fuer nach Wohnungsabnahme um ${formatTime(booking.handover_planned_at)}.`
-        : booking.handover_completed_at
-          ? `Erzeugt nach erledigter Abnahme.`
-          : `Auszug ${booking.rental_type === 'booking' ? 'Booking' : 'Mieter'}.`,
+      notes: buildCheckoutCleaningNotes(
+        booking.handover_planned_at,
+        booking.handover_completed_at,
+        booking.rental_type,
+        guestName,
+        bookingNote,
+      ),
     })
     .select('id')
     .single();
@@ -218,4 +225,29 @@ function formatTime(iso: string): string {
     day: '2-digit',
     month: '2-digit',
   });
+}
+
+/**
+ * Phase 26c: Reinigungs-Notiz baut sich aus Übergabe-Kontext, Gast-Name
+ * und ggf. Buchungs-Notiz (z.B. "Klappbett benötigt") zusammen.
+ * Exportiert für Tests.
+ */
+export function buildCheckoutCleaningNotes(
+  handoverPlannedAt: string | null,
+  handoverCompletedAt: string | null,
+  rentalType: string,
+  guestName: string | null,
+  bookingNote: string | null,
+): string {
+  const lines: string[] = [];
+  const headerPrefix = handoverPlannedAt
+    ? `Geplant nach Wohnungsabnahme um ${formatTime(handoverPlannedAt)}`
+    : handoverCompletedAt
+      ? `Erzeugt nach erledigter Abnahme`
+      : `Auszug ${rentalType === 'booking' ? 'Booking-Gast' : 'Mieter'}`;
+  lines.push(guestName ? `${headerPrefix} — ${guestName}.` : `${headerPrefix}.`);
+  if (bookingNote) {
+    lines.push('', 'Notiz aus Buchung:', bookingNote);
+  }
+  return lines.join('\n');
 }

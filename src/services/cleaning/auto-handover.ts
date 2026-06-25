@@ -19,7 +19,9 @@ export async function autoCreateHandoverDeepClean(
 ): Promise<string | null> {
   const { data: booking } = await supabase
     .from('bookings')
-    .select('id, apartment_id, end_date, apartment:apartments(type)')
+    .select(
+      'id, apartment_id, end_date, notes, apartment:apartments(type), tenant:tenants!bookings_tenant_id_fkey(first_name, last_name)',
+    )
     .eq('id', bookingId)
     .maybeSingle();
   if (!booking) return null;
@@ -57,9 +59,7 @@ export async function autoCreateHandoverDeepClean(
       estimated_duration_minutes: duration,
       linen_change: true,
       source: 'workflow',
-      notes:
-        'Wohnungsabnahmereinigung (Langzeit-Auszug)\n' +
-        'Automatisch erstellt aus Workflow-Aufgabe.',
+      notes: buildHandoverDeepCleanNotes(booking),
     })
     .select('id')
     .single();
@@ -83,4 +83,22 @@ export async function autoCreateHandoverDeepClean(
   })();
 
   return created.id;
+}
+
+function buildHandoverDeepCleanNotes(booking: {
+  notes: string | null;
+  tenant: { first_name: string | null; last_name: string | null } | null;
+}): string {
+  const guestName =
+    [booking.tenant?.first_name, booking.tenant?.last_name]
+      .filter(Boolean)
+      .join(' ')
+      .trim() || null;
+  const header = guestName
+    ? `Wohnungsabnahmereinigung (Langzeit-Auszug) — ${guestName}.`
+    : 'Wohnungsabnahmereinigung (Langzeit-Auszug).';
+  const lines = [header, 'Automatisch erstellt aus Workflow-Aufgabe.'];
+  const bookingNote = (booking.notes ?? '').trim();
+  if (bookingNote) lines.push('', 'Notiz aus Buchung:', bookingNote);
+  return lines.join('\n');
 }
