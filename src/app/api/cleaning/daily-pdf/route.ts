@@ -47,7 +47,7 @@ function deriveCategory(t: {
   source?: string | null;
   external_apartment?: { contact_name?: string | null } | null;
   booking?: {
-    rental_type?: 'long_term' | 'short_term' | 'booking';
+    rental_type?: 'long_term' | 'short_term' | 'booking' | 'day_stay';
     tenant?: { first_name?: string | null; last_name?: string | null } | null;
   } | null;
   stay?: { guest_name?: string | null } | null;

@@ -56,6 +56,7 @@ const METHOD_CHOICES: PaymentMethod[] = [
   'booking_payout',
   'flatfox',
   'card',
+  'sumup',
   'other',
 ];
 

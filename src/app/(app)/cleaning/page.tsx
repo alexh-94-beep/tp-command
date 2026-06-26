@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { CalendarDays, RefreshCw } from 'lucide-react';
+import { CalendarDays, RefreshCw, Users } from 'lucide-react';
 import { requireUser } from '@/lib/auth/session';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { PageHeader } from '@/components/shared/page-header';
@@ -195,6 +195,12 @@ export default async function CleaningPage({
                 <Button variant="secondary">
                   <CalendarDays className="h-4 w-4" />
                   Wochenplan
+                </Button>
+              </Link>
+              <Link href={{ pathname: '/cleaning/by-customer' }}>
+                <Button variant="secondary">
+                  <Users className="h-4 w-4" />
+                  Nach Kunde
                 </Button>
               </Link>
               <NewCleaningButton

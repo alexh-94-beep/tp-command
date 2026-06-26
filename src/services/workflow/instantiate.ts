@@ -110,7 +110,7 @@ export async function instantiateBookingTasks(
   const { data: tplTasks, error: tttErr } = await supabase
     .from('workflow_template_tasks')
     .select(
-      'id, template_id, position, code, title, description, category, due_offset_days, due_anchor, assignee_role, is_optional, is_conditional, condition_key',
+      'id, template_id, position, code, title, description, category, due_offset_days, due_anchor, assignee_role, assignee_user_id, is_optional, is_conditional, condition_key',
     )
     .in('template_id', tplIds)
     .order('position', { ascending: true });
@@ -192,7 +192,9 @@ export async function instantiateBookingTasks(
       is_optional: tt.is_optional,
       is_conditional: tt.is_conditional,
       condition_key: tt.condition_key,
-      assigned_to: assigneeFor(tt.assignee_role),
+      // Phase 27c: assignee_user_id im Template hat Vorrang. So kann z.B.
+      // 'Rechnung erstellen' bei Tagesbuchungen explizit Sharon kriegen.
+      assigned_to: tt.assignee_user_id ?? assigneeFor(tt.assignee_role),
     });
   }
 

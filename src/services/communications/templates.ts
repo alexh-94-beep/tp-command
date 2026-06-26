@@ -21,7 +21,7 @@ export interface TemplateContext {
   endDate: string;
   rentAmount: number;
   depositAmount: number;
-  rentalType: 'long_term' | 'short_term' | 'booking';
+  rentalType: 'long_term' | 'short_term' | 'booking' | 'day_stay';
   // Optionale Felder fuer spezifische Templates
   wifiSsid?: string;
   wifiPassword?: string;

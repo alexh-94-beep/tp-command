@@ -317,9 +317,7 @@ export default async function BookingDetailPage({
         )}
       </div>
 
-      {b.rental_type !== 'booking' && (
-        <BookingPaymentsSection bookingId={b.id} payments={payments} />
-      )}
+      <BookingPaymentsSection bookingId={b.id} payments={payments} />
 
       {b.rental_type !== 'booking' && (
         <BookingCommunicationsSection

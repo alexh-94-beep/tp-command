@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { ArrowLeft, Home, Clock, Globe } from 'lucide-react';
+import { ArrowLeft, Home, Clock, Globe, Sun } from 'lucide-react';
 import { createSupabaseServerClient } from '@/lib/supabase/server';
 import { requireRole } from '@/lib/auth/session';
 import { PageHeader } from '@/components/shared/page-header';
@@ -13,7 +13,7 @@ interface SearchParams {
   type?: string;
 }
 
-const VALID_TYPES: RentalType[] = ['long_term', 'short_term'];
+const VALID_TYPES: RentalType[] = ['long_term', 'short_term', 'day_stay'];
 
 export default async function NewBookingPage({
   searchParams,
@@ -82,6 +82,25 @@ export default async function NewBookingPage({
             </div>
           </Link>
 
+          <Link
+            href={{
+              pathname: '/bookings/new',
+              query: apartment ? { type: 'day_stay', apartment } : { type: 'day_stay' },
+            }}
+            className="rounded-xl border border-slate-200 bg-white p-6 transition hover:border-slate-900 hover:shadow"
+          >
+            <div className="flex items-start gap-3">
+              <Sun className="mt-1 h-6 w-6 text-slate-700" />
+              <div>
+                <h2 className="text-base font-medium">Tagesbuchung</h2>
+                <p className="mt-1 text-sm text-slate-500">
+                  Einzel-/Wenige-Tage-Aufenthalt. Walk-in, telefonisch oder
+                  per E-Mail. Rechnung wird intern erstellt (Sharon).
+                </p>
+              </div>
+            </div>
+          </Link>
+
           <div
             aria-disabled
             className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6"
@@ -118,7 +137,10 @@ export default async function NewBookingPage({
     .eq('is_active', true)
     .order('display_name');
 
-  const headerByType: Record<'long_term' | 'short_term', { title: string; desc: string }> = {
+  const headerByType: Record<
+    'long_term' | 'short_term' | 'day_stay',
+    { title: string; desc: string }
+  > = {
     long_term: {
       title: 'Neue Langzeitmiete',
       desc: 'Mindestens 6 Monate. Mietzins, Depot, Vertragsstatus pflegen.',
@@ -127,8 +149,12 @@ export default async function NewBookingPage({
       title: 'Neue Kurzzeitmiete',
       desc: 'Unter 6 Monate. Abrechnung wahlweise via W&W oder direkt mit Offerte.',
     },
+    day_stay: {
+      title: 'Neue Tagesbuchung',
+      desc: 'Einzel-/Wenige-Tage-Aufenthalt. Rechnung wird intern an Sharon zur Erstellung zugeteilt.',
+    },
   };
-  const header = headerByType[selectedType as 'long_term' | 'short_term'];
+  const header = headerByType[selectedType as 'long_term' | 'short_term' | 'day_stay'];
 
   return (
     <div className="space-y-6">

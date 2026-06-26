@@ -19,7 +19,7 @@ const schema = z.object({
   // einen Booking-Gast auf eine andere Wohnung umverlegen muss). Optional —
   // wenn nicht gesetzt, bleibt apartment_id unveraendert.
   apartment_id: z.string().uuid().optional(),
-  rental_type: z.enum(['long_term', 'short_term', 'booking']),
+  rental_type: z.enum(['long_term', 'short_term', 'booking', 'day_stay']),
   start_date: z.string().min(1, 'Einzug fehlt'),
   end_date: z
     .string()

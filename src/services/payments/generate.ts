@@ -35,7 +35,7 @@ export interface PlannedPayment {
 }
 
 export interface BookingForPayments {
-  rental_type: 'long_term' | 'short_term' | 'booking';
+  rental_type: 'long_term' | 'short_term' | 'booking' | 'day_stay';
   start_date: string;
   end_date: string;
   rent_amount: number;

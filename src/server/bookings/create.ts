@@ -14,7 +14,7 @@ const OPEN_END = '9999-12-31';
 
 const schema = z.object({
   apartment_id: z.string().uuid('Wohnung wählen'),
-  rental_type: z.enum(['long_term', 'short_term', 'booking']),
+  rental_type: z.enum(['long_term', 'short_term', 'booking', 'day_stay']),
   channel_id: z.string().uuid().optional().or(z.literal('')),
   external_reference: z.string().optional(),
   start_date: z.string().min(1, 'Einzug fehlt'),

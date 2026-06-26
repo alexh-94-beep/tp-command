@@ -303,6 +303,7 @@ export default function NewBookingForm({
                   name="rent_amount"
                   required={
                     rentalType === 'long_term' ||
+                    rentalType === 'day_stay' ||
                     (rentalType === 'short_term' && invoicedVia === 'direct')
                   }
                 />
@@ -316,6 +317,7 @@ export default function NewBookingForm({
                   name="deposit_amount"
                   required={
                     rentalType === 'long_term' ||
+                    rentalType === 'day_stay' ||
                     (rentalType === 'short_term' && invoicedVia === 'direct')
                   }
                 />

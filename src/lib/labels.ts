@@ -70,6 +70,7 @@ export const rentalTypeLabel: Record<RentalType, string> = {
   long_term: 'Langzeit',
   short_term: 'Kurzzeit',
   booking: 'Booking',
+  day_stay: 'Tagesbuchung',
 };
 
 export const nameTagLabel: Record<NameTagStatus, string> = {
@@ -121,6 +122,7 @@ export const paymentMethodLabel: Record<PaymentMethod, string> = {
   booking_payout: 'Booking.com',
   flatfox: 'Flatfox',
   card: 'Karte',
+  sumup: 'SumUp',
   other: 'Sonstige',
 };
 

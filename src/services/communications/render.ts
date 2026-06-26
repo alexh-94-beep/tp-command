@@ -15,7 +15,7 @@ export interface BookingForRender {
   end_date: string;
   rent_amount: number;
   deposit_amount: number;
-  rental_type: 'long_term' | 'short_term' | 'booking';
+  rental_type: 'long_term' | 'short_term' | 'booking' | 'day_stay';
   apartment: {
     number: string;
     building: string;

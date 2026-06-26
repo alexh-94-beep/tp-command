@@ -2195,6 +2195,7 @@ export type Database = {
       workflow_template_tasks: {
         Row: {
           assignee_role: Database["public"]["Enums"]["task_assignee_role"]
+          assignee_user_id: string | null
           category: string | null
           code: string
           condition_key: string | null
@@ -2212,6 +2213,7 @@ export type Database = {
         }
         Insert: {
           assignee_role?: Database["public"]["Enums"]["task_assignee_role"]
+          assignee_user_id?: string | null
           category?: string | null
           code: string
           condition_key?: string | null
@@ -2229,6 +2231,7 @@ export type Database = {
         }
         Update: {
           assignee_role?: Database["public"]["Enums"]["task_assignee_role"]
+          assignee_user_id?: string | null
           category?: string | null
           code?: string
           condition_key?: string | null
@@ -2245,6 +2248,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "workflow_template_tasks_assignee_user_id_fkey"
+            columns: ["assignee_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "workflow_template_tasks_template_id_fkey"
             columns: ["template_id"]
@@ -2449,6 +2459,7 @@ export type Database = {
         | "flatfox"
         | "card"
         | "other"
+        | "sumup"
       payment_status: "pending" | "paid" | "overdue" | "cancelled"
       payment_type:
         | "rent"
@@ -2466,7 +2477,7 @@ export type Database = {
         | "guest_message"
         | "booking_modified"
         | "arrivals_summary"
-      rental_type: "long_term" | "short_term" | "booking"
+      rental_type: "long_term" | "short_term" | "booking" | "day_stay"
       residence_permit:
         | "C"
         | "B"
@@ -2513,7 +2524,12 @@ export type Database = {
       user_role: "admin" | "office" | "cleaning" | "management"
       waitlist_status: "open" | "contacted" | "placed" | "dropped"
       workflow_kind: "move_in" | "move_out"
-      workflow_scope: "long_term" | "short_term" | "booking" | "all"
+      workflow_scope:
+        | "long_term"
+        | "short_term"
+        | "booking"
+        | "all"
+        | "day_stay"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -3204,6 +3220,7 @@ export const Constants = {
         "flatfox",
         "card",
         "other",
+        "sumup",
       ],
       payment_status: ["pending", "paid", "overdue", "cancelled"],
       payment_type: [
@@ -3224,7 +3241,7 @@ export const Constants = {
         "booking_modified",
         "arrivals_summary",
       ],
-      rental_type: ["long_term", "short_term", "booking"],
+      rental_type: ["long_term", "short_term", "booking", "day_stay"],
       residence_permit: [
         "C",
         "B",
@@ -3275,7 +3292,7 @@ export const Constants = {
       user_role: ["admin", "office", "cleaning", "management"],
       waitlist_status: ["open", "contacted", "placed", "dropped"],
       workflow_kind: ["move_in", "move_out"],
-      workflow_scope: ["long_term", "short_term", "booking", "all"],
+      workflow_scope: ["long_term", "short_term", "booking", "all", "day_stay"],
     },
   },
   storage: {
