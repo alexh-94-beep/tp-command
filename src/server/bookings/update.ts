@@ -15,6 +15,10 @@ const OPEN_END = '9999-12-31';
 
 const schema = z.object({
   id: z.string().uuid(),
+  // Phase 27a: Wohnung kann nachtraeglich geaendert werden (z.B. wenn Mireme
+  // einen Booking-Gast auf eine andere Wohnung umverlegen muss). Optional —
+  // wenn nicht gesetzt, bleibt apartment_id unveraendert.
+  apartment_id: z.string().uuid().optional(),
   rental_type: z.enum(['long_term', 'short_term', 'booking']),
   start_date: z.string().min(1, 'Einzug fehlt'),
   end_date: z
@@ -77,10 +81,14 @@ export async function updateBooking(formData: FormData): Promise<UpdateBookingRe
     .single();
   if (existErr || !existing) return { ok: false, error: 'Buchung nicht gefunden.' };
 
+  // Ziel-Wohnung (geaendert oder gleich)
+  const targetApartmentId = v.apartment_id ?? existing.apartment_id;
+  const apartmentChanged = targetApartmentId !== existing.apartment_id;
+
   // Verfuegbarkeits-Check (eigene Buchung ignorieren) – nur wenn nicht storniert
   if (v.status !== 'cancelled') {
     const av = await checkAvailability(supabase, {
-      apartmentId: existing.apartment_id,
+      apartmentId: targetApartmentId,
       startDate: v.start_date,
       endDate: v.end_date,
       ignoreBookingId: v.id,
@@ -95,6 +103,7 @@ export async function updateBooking(formData: FormData): Promise<UpdateBookingRe
   }
 
   const newPatch = {
+    ...(apartmentChanged ? { apartment_id: targetApartmentId } : {}),
     rental_type: v.rental_type,
     start_date: v.start_date,
     end_date: v.end_date,
@@ -127,6 +136,16 @@ export async function updateBooking(formData: FormData): Promise<UpdateBookingRe
       return { ok: false, error: 'Datenbank meldet Doppelbelegung. Bitte erneut prüfen.' };
     }
     return { ok: false, error: updateErr.message };
+  }
+
+  // Phase 27a: Wenn Wohnung gewechselt, ziehen die nicht erledigten
+  // cleaning_tasks der Buchung mit.
+  if (apartmentChanged) {
+    await supabase
+      .from('cleaning_tasks')
+      .update({ apartment_id: targetApartmentId })
+      .eq('booking_id', v.id)
+      .neq('status', 'done');
   }
 
   // Audit-Log: Buchungs-Aenderung (Phase 16)
@@ -176,6 +195,9 @@ export async function updateBooking(formData: FormData): Promise<UpdateBookingRe
   revalidatePath('/tasks');
   revalidatePath(`/bookings/${v.id}`);
   revalidatePath(`/apartments/${existing.apartment_id}`);
+  if (apartmentChanged) {
+    revalidatePath(`/apartments/${targetApartmentId}`);
+  }
   revalidatePath('/dashboard');
 
   redirect(`/bookings/${v.id}`);

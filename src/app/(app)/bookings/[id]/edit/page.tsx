@@ -17,10 +17,11 @@ export default async function EditBookingPage({
   const { id } = await params;
 
   const supabase = await createSupabaseServerClient();
-  const { data } = await supabase
-    .from('bookings')
-    .select(
-      `
+  const [{ data }, { data: allApartments }] = await Promise.all([
+    supabase
+      .from('bookings')
+      .select(
+        `
       id, apartment_id, rental_type, external_reference,
       start_date, end_date, rent_amount, deposit_amount,
       short_term_flat_rate, parking_included, parking_fee,
@@ -29,9 +30,15 @@ export default async function EditBookingPage({
       apartment:apartments(number),
       tenant:tenants!bookings_tenant_id_fkey(first_name, last_name)
     `,
-    )
-    .eq('id', id)
-    .single();
+      )
+      .eq('id', id)
+      .single(),
+    supabase
+      .from('apartments')
+      .select('id, number, building')
+      .neq('ownership', 'sold_external')
+      .order('number'),
+  ]);
 
   if (!data) notFound();
 
@@ -56,8 +63,14 @@ export default async function EditBookingPage({
       />
 
       <EditBookingForm
+        apartments={(allApartments ?? []).map((a) => ({
+          id: a.id,
+          number: a.number,
+          building: a.building,
+        }))}
         booking={{
           id: data.id,
+          apartment_id: data.apartment_id,
           rental_type: data.rental_type,
           start_date: data.start_date,
           end_date: data.end_date,

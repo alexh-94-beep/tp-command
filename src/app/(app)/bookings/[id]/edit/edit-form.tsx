@@ -19,8 +19,15 @@ const labelCls = 'block text-sm font-medium text-slate-700';
 const inputCls =
   'mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-slate-900 focus:outline-none focus:ring-1 focus:ring-slate-900';
 
+interface ApartmentOption {
+  id: string;
+  number: string;
+  building: string | null;
+}
+
 interface BookingFormState {
   id: string;
+  apartment_id: string;
   rental_type: RentalType;
   start_date: string;
   end_date: string;
@@ -41,7 +48,13 @@ interface BookingFormState {
   notes: string | null;
 }
 
-export default function EditBookingForm({ booking }: { booking: BookingFormState }) {
+export default function EditBookingForm({
+  booking,
+  apartments,
+}: {
+  booking: BookingFormState;
+  apartments: ApartmentOption[];
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [result, setResult] = useState<UpdateBookingResult | null>(null);
@@ -97,9 +110,29 @@ export default function EditBookingForm({ booking }: { booking: BookingFormState
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Zeitraum</CardTitle>
+            <CardTitle>Wohnung &amp; Zeitraum</CardTitle>
           </CardHeader>
           <CardBody className="space-y-4">
+            <div>
+              <label className={labelCls}>Wohnung</label>
+              <select
+                className={inputCls}
+                name="apartment_id"
+                defaultValue={booking.apartment_id}
+              >
+                {apartments.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.number}
+                    {a.building ? ` · Haus ${a.building}` : ''}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-xs text-slate-500">
+                Beim Speichern wird die Verfügbarkeit der neuen Wohnung im
+                Zeitraum geprüft. Reinigungs- und Workflow-Aufgaben wandern
+                automatisch mit.
+              </p>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className={labelCls}>Einzug *</label>
